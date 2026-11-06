@@ -15,17 +15,20 @@ const myVotes = {};
 const peerMarkers = {}; 
 const activePeers = {}; 
 
+// Setup Global Backup Data for Autosave
+window.AppBackupData = { messages: [], notes: [], room: "Unknown", identity: identity };
+window.AppIdentity = identity;
+
 // ==========================================
-// 1. GEOHASH ENGINE (From Steerradar concept)
+// 1. GEOHASH ENGINE
 // ==========================================
-// Creates a short geohash so users on the same bus automatically join the same room
 function getGeohash(lat, lng) {
   const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
   let idx = 0, bit = 0, evenBit = true;
   let geohash = '';
   let latMin = -90, latMax = 90, lonMin = -180, lonMax = 180;
   
-  while (geohash.length < 5) { // Precision 5 = ~4.9km x 4.9km (Bus Route size)
+  while (geohash.length < 5) { // Precision 5 = ~4.9km
     if (evenBit) {
       const lonMid = (lonMin + lonMax) / 2;
       if (lng > lonMid) { idx = idx * 2 + 1; lonMin = lonMid; } 
@@ -53,11 +56,10 @@ window.requestGPS = function() {
         
         const geohash = getGeohash(myLat, myLng);
         document.getElementById('room-id-display').innerText = `Room: ${geohash}`;
+        window.AppBackupData.room = geohash;
         
-        // Hide GPS screen
         document.getElementById('gps-screen').style.display = 'none';
         
-        // Initialize App
         initMap();
         startMesh(geohash);
       },
@@ -74,6 +76,12 @@ window.requestGPS = function() {
 function startMesh(roomId) {
   mesh = initMesh(roomId, 
     (env) => {
+      // Save to autosave buffer
+      if (window.AppBackupData) {
+        window.AppBackupData.messages.push(env);
+        if (window.triggerAutosave) window.triggerAutosave();
+      }
+
       if (env.type === 'chat' && currentChatTarget === env.from.substring(0,5)) {
         renderMessage(document.getElementById('private-chat-messages'), env.payload.text, env.from.substring(0,5), false);
       }
@@ -95,6 +103,7 @@ function startMesh(roomId) {
       updatePeerList();
     }
   );
+  window.AppMesh = () => mesh;
 }
 
 // ==========================================
@@ -106,16 +115,14 @@ function initMap() {
 
   addSelfMarker();
 
-  // Map click handler for Pin Mode
   map.on('click', (e) => {
     if (pinModeActive) {
       selectedLatLng = e.latlng;
       openNoteModal(selectedLatLng);
-      togglePinMode(false); // turn off after click
+      togglePinMode(false); 
     }
   });
 
-  // Watch position for real-time updates
   navigator.geolocation.watchPosition((pos) => {
     myLat = pos.coords.latitude;
     myLng = pos.coords.longitude;
@@ -161,7 +168,6 @@ window.togglePinMode = function(forceState) {
     btn.classList.add('bg-amber-600', 'ring-4', 'ring-amber-300');
     btn.classList.remove('bg-amber-400');
     btn.innerHTML = '<i class="fa-solid fa-location-dot text-lg"></i>';
-    // Change cursor
     document.getElementById('map').style.cursor = 'crosshair';
   } else {
     btn.classList.remove('bg-amber-600', 'ring-4', 'ring-amber-300');
@@ -192,6 +198,12 @@ window.submitNote = () => {
 
 function addNoteToMap(note, noteId) {
   if (mapNotes[noteId]) return;
+  
+  if (window.AppBackupData) {
+    window.AppBackupData.notes.push({ noteId, ...note });
+    if (window.triggerAutosave) window.triggerAutosave();
+  }
+
   const noteIcon = L.divIcon({
     className: 'custom-div-icon',
     html: `<div class="w-8 h-8 bg-amber-400 border-2 border-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-message text-white text-xs"></i></div>`,
@@ -229,7 +241,7 @@ window.voteNote = (noteId, voteValue) => {
 function updatePeerList() {
   const list = document.getElementById('peer-list');
   const count = Object.keys(activePeers).length;
-  document.getElementById('peer-count').innerText = `${count + 1} Peers`; // +1 for self
+  document.getElementById('peer-count').innerText = `${count + 1} Peers`; 
   
   if (count === 0) {
     list.innerHTML = `<div class="text-center text-sm text-slate-400 py-10">No peers nearby. Make sure they have the app open.</div>`;
@@ -261,7 +273,7 @@ window.openPrivateChat = (peerId, displayName) => {
   document.getElementById('private-chat-title').innerText = `Chat with ${displayName}`;
   document.getElementById('private-chat-modal').classList.remove('hidden');
   document.getElementById('private-chat-modal').classList.add('flex');
-  switchPage('chats'); // Switch to chats tab in background
+  switchPage('chats'); 
 };
 
 window.closePrivateChat = () => { 
@@ -285,17 +297,6 @@ function renderMessage(box, text, sender, isSelf) {
   box.appendChild(div); box.scrollTop = box.scrollHeight;
 }
 
-window.switchPage = function(pageName) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${pageName}`).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(btn => { btn.classList.remove('text-brand-600'); btn.classList.add('text-slate-400'); });
-  const nav = document.getElementById(`nav-${pageName}`);
-  if(nav) { nav.classList.remove('text-slate-400'); nav.classList.add('text-brand-600'); }
-};
-
-// Expose Mesh globally for other scripts
-window.AppMesh = () => mesh;
-
-// Debug Console Override
+// Debug Console
 const originalLog = console.log;
 console.log = (...args) => { originalLog(...args); const el = document.getElementById('console-output'); if(el) el.innerHTML += `<div class="mb-1 text-emerald-400">${args.join(' ')}</div>`; };
