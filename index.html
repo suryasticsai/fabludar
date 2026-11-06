@@ -12,6 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- QR Code Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Leaflet Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     tailwind.config = {
@@ -19,9 +22,7 @@
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
           colors: {
-            brand: {
-              50: '#eff6ff', 100: '#dbeafe', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-            }
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
           },
           boxShadow: {
             'glow': '0 0 20px -5px rgba(37, 99, 235, 0.4)',
@@ -33,23 +34,8 @@
   </script>
 
   <style>
-    body { 
-      background-color: #e2e8f0; 
-      user-select: none; 
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
-    }
-
-    /* Radar Animation */
-    @keyframes radar-sweep { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .radar-sweeper { animation: radar-sweep 3s linear infinite; transform-origin: center center; }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(0.8); opacity: 0.5; }
-      100% { transform: scale(1.5); opacity: 0; }
-    }
-    .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-
+    body { background-color: #e2e8f0; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+    
     /* Hide Scrollbar */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -59,28 +45,25 @@
     .page.active { display: flex; opacity: 1; transform: translateY(0); flex-direction: column; height: 100%; }
 
     /* Custom Glass Effect */
-    .glass { 
-      background: rgba(255, 255, 255, 0.85); 
-      backdrop-filter: blur(16px); 
-      -webkit-backdrop-filter: blur(16px); 
-      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-    }
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
 
-    /* FAB Modal Animation */
+    /* Modals */
     .fab-modal { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; transform: translateY(100%); opacity: 0; }
     .fab-modal.open { transform: translateY(0); opacity: 1; }
 
-    /* Tech Grid Background */
-    .tech-grid {
-      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-      background-size: 16px 16px;
-      background-position: center;
-    }
+    /* Leaflet Customization */
+    #map { background-color: #f1f5f9; z-index: 0; }
+    .leaflet-popup-content-wrapper { border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 0; }
+    .leaflet-popup-content { margin: 0; width: auto !important; }
+    .leaflet-container a.leaflet-popup-close-button { color: #64748b; padding: 8px 8px 0 0; }
+    
+    /* Custom Map Markers */
+    .custom-div-icon { background: none; border: none; }
   </style>
 </head>
 <body class="min-h-[100dvh] flex items-center justify-center sm:p-4">
 
-  <!-- Mobile Phone Frame (Desktop view only) -->
+  <!-- Mobile Phone Frame -->
   <div class="relative w-full max-w-md h-[100dvh] sm:h-[850px] bg-slate-50 sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col sm:border-[10px] border-slate-900">
 
     <!-- App Header -->
@@ -102,12 +85,9 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Debug Terminal Icon -->
         <button onclick="switchPage('debug')" class="w-9 h-9 rounded-full bg-slate-900 text-emerald-400 flex items-center justify-center shadow-md hover:bg-slate-800 transition active:scale-95">
           <i class="fa-solid fa-terminal text-xs"></i>
         </button>
-
-        <!-- Identity Badge -->
         <button onclick="copyIdentity()" class="bg-white hover:bg-slate-50 transition px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200 shadow-sm active:scale-95">
           <i class="fa-solid fa-fingerprint text-brand-600 text-sm"></i>
           <span class="text-xs font-bold text-slate-700 font-mono" id="my-id-badge">...</span>
@@ -116,13 +96,12 @@
     </header>
 
     <!-- Scrollable Content Area -->
-    <!-- pb-[90px] ensures content isn't hidden behind the bottom nav -->
     <main class="flex-1 overflow-hidden relative mt-[68px]">
 
-      <!-- ================= PAGE 1: RADAR & CHAT ================= -->
+      <!-- ================= PAGE 1: MAP & PUBLIC CHAT ================= -->
       <section id="page-radar" class="page active overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-5">
-
-        <!-- Room Info & QR -->
+        
+        <!-- Room Info -->
         <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Current Room</p>
@@ -133,311 +112,121 @@
           </button>
         </div>
 
-        <!-- Radar Widget -->
-        <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm text-center relative overflow-hidden">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <i class="fa-solid fa-satellite-dish text-brand-400"></i> Local Radar
-            </span>
-            <span class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100 shadow-sm" id="peer-count">0 Peers</span>
+        <!-- Map Widget -->
+        <div class="bg-white border border-slate-100 rounded-[2rem] p-2 shadow-sm relative">
+          <div class="absolute top-5 right-5 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200 shadow-sm pointer-events-none">
+            <span class="text-xs font-bold text-brand-600" id="peer-count">0 Peers</span>
           </div>
-
-          <!-- Radar Circle with Tech Grid -->
-          <div class="relative w-56 h-56 mx-auto my-4 rounded-full border-2 border-brand-50 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner tech-grid" id="radar-container">
-            <div class="absolute w-40 h-40 rounded-full border border-brand-200/50"></div>
-            <div class="absolute w-24 h-24 rounded-full border border-brand-300/40"></div>
-            <div class="absolute w-10 h-10 rounded-full border border-brand-400/20"></div>
-
-            <!-- Sweeper -->
-            <div class="absolute w-full h-full radar-sweeper pointer-events-none">
-              <div class="w-1/2 h-1/2 bg-gradient-to-br from-brand-500/30 to-transparent origin-bottom-right rounded-tl-full"></div>
-            </div>
-
-            <!-- Self Node -->
-            <div class="relative z-10 flex flex-col items-center justify-center">
-              <div class="absolute w-12 h-12 rounded-full bg-brand-400/30 pulse-ring"></div>
-              <div class="w-10 h-10 rounded-full bg-brand-600 border-[3px] border-white shadow-glow flex items-center justify-center">
-                <i class="fa-solid fa-user text-white text-sm"></i>
-              </div>
-              <span class="absolute -bottom-6 text-[9px] font-extrabold text-brand-700 bg-white px-2 py-0.5 rounded-full shadow-sm border border-brand-100">YOU</span>
-            </div>
-          </div>
-
-          <p class="text-[11px] text-slate-500 font-medium mt-4 bg-slate-50 py-1.5 rounded-lg border border-slate-100">
-            <i class="fa-solid fa-circle-info text-slate-400 mr-1"></i> Scanning for nearby peers...
+          <div id="map" class="w-full h-72 rounded-[1.5rem]"></div>
+          <p class="text-[10px] text-center text-slate-400 mt-2 font-medium">
+            <i class="fa-solid fa-location-crosshairs text-brand-400 mr-1"></i> Tap a peer on the map to invite them to a private chat.
           </p>
         </div>
 
-        <!-- Chat Interface -->
-        <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col h-[340px] overflow-hidden">
+        <!-- Public Chat -->
+        <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col h-[300px] overflow-hidden">
           <div class="px-4 py-3 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-            <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-comments text-brand-500"></i> Mesh Chat
-            </h3>
-            <span class="text-[9px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">E2E Encrypted</span>
+            <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-comments text-brand-500"></i> Bus Public Chat</h3>
+            <span class="text-[9px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">E2E</span>
           </div>
-
-          <div class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar bg-slate-50/30" id="chat-messages-box">
-            <div class="text-center text-[10px] text-slate-400 bg-white rounded-full py-1.5 px-4 inline-block mx-auto w-max block border border-slate-100 shadow-sm">
-              Messages are signed and verified locally.
-            </div>
-          </div>
-
+          <div class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar bg-slate-50/30" id="public-chat-messages"></div>
           <div class="p-3 border-t border-slate-50 bg-white">
             <div class="flex items-center bg-slate-100 rounded-full pr-1.5 pl-4 py-1.5 border border-transparent focus-within:border-brand-300 focus-within:bg-white transition-all shadow-inner">
-              <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-transparent text-sm outline-none text-slate-700 placeholder-slate-400">
-              <button id="send-btn" class="bg-brand-600 hover:bg-brand-700 text-white w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-90 shadow-md">
-                <i class="fa-solid fa-paper-plane text-xs"></i>
-              </button>
+              <input type="text" id="public-chat-input" placeholder="Message the bus..." class="flex-1 bg-transparent text-sm outline-none text-slate-700 placeholder-slate-400">
+              <button id="public-send-btn" class="bg-brand-600 hover:bg-brand-700 text-white w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-90 shadow-md"><i class="fa-solid fa-paper-plane text-xs"></i></button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ================= PAGE 2: COMMUTE & TRUTH ================= -->
+      <!-- ================= PAGE 2: COMMUTE ================= -->
       <section id="page-commute" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-5">
-        <div class="bg-gradient-to-br from-brand-600 to-brand-800 rounded-[2rem] p-6 text-white shadow-lg relative overflow-hidden">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-brand-200 text-[10px] font-bold uppercase tracking-wider mb-1">Active Route</p>
-              <h2 class="text-2xl font-extrabold">Route 42 - Express</h2>
-              <p class="text-brand-100 text-xs mt-1.5 font-medium"><i class="fa-solid fa-location-dot mr-1"></i> Downtown ➔ Tech Park</p>
-            </div>
-            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 text-center border border-white/20 shadow-inner">
-              <span class="block text-3xl font-black leading-none" id="eta-display">--</span>
-              <span class="text-[9px] uppercase font-bold text-brand-100 tracking-wider">Mins ETA</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-users-viewfinder text-brand-500"></i> Crowdsourced Status
-          </h3>
-          <p class="text-xs text-slate-500 mb-4">Vote to update the mesh for everyone.</p>
-
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <button onclick="castVote('eta', 5)" class="bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 p-3 rounded-2xl transition text-left active:scale-95">
-              <span class="block text-lg font-bold text-slate-800">5 min</span>
-              <span class="text-[10px] text-slate-500">Arriving Soon</span>
-            </button>
-            <button onclick="castVote('eta', 15)" class="bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 p-3 rounded-2xl transition text-left active:scale-95">
-              <span class="block text-lg font-bold text-slate-800">15 min</span>
-              <span class="text-[10px] text-slate-500">Delayed</span>
-            </button>
-          </div>
-
-          <div class="bg-slate-50 rounded-xl p-3 flex justify-between items-center border border-slate-100">
-            <span class="text-xs font-bold text-slate-600">Bus Fullness</span>
-            <div class="flex gap-1.5">
-              <button onclick="castVote('fullness', 'empty')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-emerald-500 shadow-sm active:scale-90 transition"><i class="fa-solid fa-chair"></i></button>
-              <button onclick="castVote('fullness', 'half')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-amber-500 shadow-sm active:scale-90 transition"><i class="fa-solid fa-users"></i></button>
-              <button onclick="castVote('fullness', 'full')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-rose-500 shadow-sm active:scale-90 transition"><i class="fa-solid fa-users-rays"></i></button>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-extrabold text-slate-800">Live Seat Map</h3>
-            <div class="flex items-center gap-3 text-[10px] font-bold text-slate-500">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-brand-500 inline-block"></span> Free</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-slate-300 inline-block"></span> Taken</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-4 gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 max-w-xs mx-auto" id="seat-grid">
-            <!-- Seats generated by JS -->
-          </div>
-        </div>
+         <!-- (Keep your existing commute page code here) -->
+         <div class="bg-white p-5 rounded-[2rem] text-center text-slate-500 font-bold">Commute Page (Coming Soon)</div>
       </section>
 
       <!-- ================= PAGE 3: FEED ================= -->
       <section id="page-feed" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-extrabold text-slate-800">Mesh Feed</h2>
-        </div>
-
-        <div class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">D</div>
-              <div>
-                <h4 class="text-xs font-bold text-slate-800">Dave (Seat 14A)</h4>
-                <p class="text-[10px] text-slate-400">2 mins ago</p>
-              </div>
-            </div>
-            <span class="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-lg">#Traffic</span>
-          </div>
-          <h3 class="text-sm font-bold text-slate-800 leading-snug">Heavy traffic near Central Bridge</h3>
-          <p class="text-xs text-slate-600 leading-relaxed">If you are taking the 8:15 bus, expect a 10-minute delay. The left lane is blocked.</p>
-          <div class="flex items-center gap-4 pt-2 text-slate-400 text-xs">
-            <button class="flex items-center gap-1 hover:text-brand-500 active:scale-90 transition"><i class="fa-regular fa-heart"></i> 12</button>
-            <button class="flex items-center gap-1 hover:text-brand-500 active:scale-90 transition"><i class="fa-regular fa-comment"></i> 3</button>
-          </div>
-        </div>
+        <!-- (Keep your existing feed page code here) -->
+        <div class="bg-white p-5 rounded-[2rem] text-center text-slate-500 font-bold">Feed Page (Coming Soon)</div>
       </section>
 
       <!-- ================= PAGE 4: SETTINGS ================= -->
       <section id="page-settings" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-4 bg-slate-50">
-        <div class="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm text-center">
-          <div class="w-20 h-20 mx-auto bg-brand-100 rounded-full flex items-center justify-center mb-3 border-4 border-white shadow-md">
-            <i class="fa-solid fa-user text-brand-600 text-3xl"></i>
-          </div>
-          <h2 class="text-lg font-extrabold text-slate-800">Anonymous Commuter</h2>
-          <p class="text-[10px] text-slate-500 mt-1 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100 truncate" id="settings-pubkey">Loading key...</p>
-          <button onclick="copyIdentity()" class="mt-3 text-xs bg-slate-900 text-white px-4 py-2 rounded-full font-bold shadow-sm active:scale-95 transition">Copy Public Key</button>
-        </div>
-
-        <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
-          <div class="p-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center"><i class="fa-solid fa-eye"></i></div>
-              <div>
-                <h4 class="text-sm font-bold text-slate-800">Bluetooth Visibility</h4>
-                <p class="text-[10px] text-slate-500">Allow peers to see your radar dot</p>
-              </div>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
-            </label>
-          </div>
-        </div>
-
-        <div class="bg-rose-50 rounded-[2rem] border border-rose-100 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-rose-800 mb-1">Danger Zone</h3>
-          <p class="text-[10px] text-rose-600 mb-3 font-medium">This will delete your local identity, messages, and disconnect you from the mesh.</p>
-          <button onclick="wipeData()" class="w-full bg-rose-600 text-white font-bold text-xs py-2.5 rounded-xl shadow-md active:scale-95 transition">
-            <i class="fa-solid fa-trash-can mr-1"></i> Floss & Wipe Data
-          </button>
-        </div>
+        <!-- (Keep your existing settings page code here) -->
+        <div class="bg-white p-5 rounded-[2rem] text-center text-slate-500 font-bold">Settings Page (Coming Soon)</div>
       </section>
 
-      <!-- ================= PAGE 5: DEBUG CONSOLE ================= -->
+      <!-- ================= PAGE 5: DEBUG ================= -->
       <section id="page-debug" class="page overflow-hidden p-4 pb-[90px] flex-col bg-slate-900 font-mono">
         <div class="flex justify-between items-center mb-3">
           <h2 class="text-xs font-bold text-slate-400 tracking-widest uppercase">System Logs</h2>
           <div class="flex gap-2">
-            <button onclick="copyLogs()" class="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-700 transition active:scale-95">
-              <i class="fa-regular fa-copy mr-1"></i> Copy
-            </button>
-            <button onclick="clearLogs()" class="text-[10px] bg-rose-900/50 text-rose-400 px-3 py-1.5 rounded-md border border-rose-900 hover:bg-rose-900 transition active:scale-95">
-              <i class="fa-solid fa-trash-can mr-1"></i> Clear
-            </button>
+            <button onclick="copyLogs()" class="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-700 transition active:scale-95"><i class="fa-regular fa-copy mr-1"></i> Copy</button>
+            <button onclick="clearLogs()" class="text-[10px] bg-rose-900/50 text-rose-400 px-3 py-1.5 rounded-md border border-rose-900 hover:bg-rose-900 transition active:scale-95"><i class="fa-solid fa-trash-can mr-1"></i> Clear</button>
           </div>
         </div>
         <div id="console-output" class="flex-1 bg-black/50 rounded-xl p-3 overflow-y-auto text-[10px] leading-relaxed text-slate-300 border border-slate-800 break-words whitespace-pre-wrap">
-          <div class="text-emerald-500">> Console initialized. Waiting for network events...</div>
+          <div class="text-emerald-500">> Console initialized...</div>
         </div>
       </section>
 
     </main>
 
-    <!-- ================= BOTTOM NAVIGATION ================= -->
+    <!-- Bottom Nav -->
     <nav class="absolute bottom-0 w-full glass border-t border-slate-200 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-between items-center z-40 rounded-b-[30px] sm:rounded-b-[30px]">
+      <button onclick="switchPage('radar')" id="nav-radar" class="nav-btn w-16 flex flex-col items-center gap-1 text-brand-600 transition-all duration-300"><i class="fa-solid fa-map-location-dot text-lg"></i><span class="text-[9px] font-bold">Map</span></button>
+      <button onclick="switchPage('commute')" id="nav-commute" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300"><i class="fa-solid fa-bus text-lg"></i><span class="text-[9px] font-bold">Commute</span></button>
       
-      <button onclick="switchPage('radar')" id="nav-radar" class="nav-btn w-16 flex flex-col items-center gap-1 text-brand-600 transition-all duration-300">
-        <i class="fa-solid fa-radar text-lg"></i>
-        <span class="text-[9px] font-bold">Radar</span>
-      </button>
-
-      <button onclick="switchPage('commute')" id="nav-commute" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300">
-        <i class="fa-solid fa-bus text-lg"></i>
-        <span class="text-[9px] font-bold">Commute</span>
-      </button>
-
-      <!-- CENTER FLOATING ACTION BUTTON -->
       <div class="relative -top-6 w-16 flex justify-center">
-        <button onclick="toggleFABModal()" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,99,235,0.4)] border-4 border-slate-50 transform transition hover:scale-105 active:scale-90">
-          <i class="fa-solid fa-plus text-xl"></i>
-        </button>
+        <button onclick="toggleFABModal()" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,99,235,0.4)] border-4 border-slate-50 transform transition hover:scale-105 active:scale-90"><i class="fa-solid fa-plus text-xl"></i></button>
       </div>
 
-      <button onclick="switchPage('feed')" id="nav-feed" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300">
-        <i class="fa-solid fa-layer-group text-lg"></i>
-        <span class="text-[9px] font-bold">Feed</span>
-      </button>
-
-      <button onclick="switchPage('settings')" id="nav-settings" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300">
-        <i class="fa-solid fa-gear text-lg"></i>
-        <span class="text-[9px] font-bold">Settings</span>
-      </button>
+      <button onclick="switchPage('feed')" id="nav-feed" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300"><i class="fa-solid fa-layer-group text-lg"></i><span class="text-[9px] font-bold">Feed</span></button>
+      <button onclick="switchPage('settings')" id="nav-settings" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300"><i class="fa-solid fa-gear text-lg"></i><span class="text-[9px] font-bold">Settings</span></button>
     </nav>
 
-    <!-- ================= FAB QUICK ACTIONS MODAL ================= -->
-    <div id="fab-modal" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden items-end justify-center p-4 pb-28 fab-modal">
-      <div class="bg-white rounded-[2rem] w-full max-w-sm p-4 shadow-2xl space-y-2 border border-slate-100">
-        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Quick Actions</h3>
-
-        <button onclick="closeFABModal(); switchPage('feed'); alert('Post creation UI coming soon!')" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-left transition active:scale-[0.98]">
-          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-pen"></i></div>
+    <!-- PRIVATE CHAT MODAL -->
+    <div id="private-chat-modal" class="absolute inset-0 bg-white z-50 hidden flex-col">
+      <!-- Header -->
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-3">
+          <button onclick="closePrivateChat()" class="w-8 h-8 rounded-full bg-white text-slate-600 flex items-center justify-center shadow-sm active:scale-90"><i class="fa-solid fa-arrow-left"></i></button>
           <div>
-            <h4 class="text-sm font-bold text-slate-800">Create Post</h4>
-            <p class="text-[10px] text-slate-500">Share an update to the mesh feed</p>
+            <h3 class="text-sm font-bold text-slate-800" id="private-chat-title">Private Chat</h3>
+            <span class="text-[10px] text-brand-600 font-medium flex items-center gap-1"><i class="fa-solid fa-circle text-[6px]"></i> P2P Connected</span>
           </div>
-        </button>
-
-        <button onclick="closeFABModal(); alert('Broadcasting SOS over mesh!')" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 text-left transition active:scale-[0.98]">
-          <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-triangle-exclamation"></i></div>
-          <div>
-            <h4 class="text-sm font-bold text-slate-800">Broadcast Alert</h4>
-            <p class="text-[10px] text-slate-500">Send a high-priority warning</p>
-          </div>
-        </button>
+        </div>
+        <span class="text-[10px] text-slate-400 font-mono">Encrypted</span>
+      </div>
+      
+      <!-- Messages -->
+      <div class="flex-1 p-4 overflow-y-auto no-scrollbar space-y-3 bg-slate-50/50" id="private-chat-messages">
+        <div class="text-center text-[10px] text-slate-400 bg-slate-100 rounded-full py-1 px-3 inline-block mx-auto w-max block">Secure room established.</div>
+      </div>
+      
+      <!-- Input -->
+      <div class="p-3 border-t border-slate-100 bg-white pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-2">
+        <input type="text" id="private-chat-input" placeholder="Type secure message..." class="flex-1 bg-slate-100 text-sm rounded-full px-4 py-2.5 outline-none font-medium focus:ring-1 focus:ring-brand-500">
+        <button id="private-send-btn" class="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shadow hover:bg-brand-700 active:scale-90 transition"><i class="fa-solid fa-paper-plane text-xs"></i></button>
       </div>
     </div>
 
-    <!-- QR Code Modal -->
+    <!-- QR Modal & FAB (Keep your existing modals here) -->
     <div id="qr-modal" class="absolute inset-0 bg-slate-900/60 backdrop-blur-md z-50 hidden items-center justify-center p-6">
       <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl relative border border-slate-100">
         <button onclick="closeQRCode()" class="absolute top-4 right-4 w-8 h-8 bg-slate-100 rounded-full text-slate-500 flex items-center justify-center hover:bg-slate-200 active:scale-90 transition"><i class="fa-solid fa-xmark"></i></button>
         <h3 class="text-lg font-extrabold text-slate-800 mb-1">Invite Peers</h3>
         <p class="text-[11px] text-slate-500 mb-6">Scan this QR code to join the room.</p>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 flex justify-center mb-6 shadow-sm" id="qrcode-container"></div>
-        <button onclick="copyRoomLink()" class="w-full bg-brand-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition flex items-center justify-center gap-2">
-          <i class="fa-regular fa-copy"></i> Copy Link
-        </button>
+        <button onclick="copyRoomLink()" class="w-full bg-brand-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition flex items-center justify-center gap-2"><i class="fa-regular fa-copy"></i> Copy Link</button>
       </div>
     </div>
 
   </div>
 
-  <!-- Load the Modules -->
+  <!-- Load Scripts -->
   <script type="module" src="./bluapp.js"></script>
-  <script type="module" src="./commuter.js"></script>
-  <script type="module" src="./feedster.js"></script>
-  <script type="module" src="./creator.js"></script>
-
-  <!-- FAB Modal Logic & Settings Wipe -->
-  <script>
-    window.toggleFABModal = function() {
-      const modal = document.getElementById('fab-modal');
-      if (modal.classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        // slight delay to allow display:flex to apply before transform
-        setTimeout(() => modal.classList.add('open'), 10);
-      } else {
-        closeFABModal();
-      }
-    };
-
-    window.closeFABModal = function() {
-      const modal = document.getElementById('fab-modal');
-      modal.classList.remove('open');
-      setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }, 300);
-    };
-
-    window.wipeData = function() {
-      if (confirm("Are you sure you want to delete your identity and wipe all local data? This cannot be undone.")) {
-        localStorage.clear();
-        window.location.reload();
-      }
-    };
-  </script>
+  <script src="./creator.js"></script>
 </body>
 </html>
