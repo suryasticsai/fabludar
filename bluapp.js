@@ -52,7 +52,6 @@ document.getElementById('room-name-display').innerText = currentRoom;
 // Initialize the P2P Mesh
 const mesh = initMesh(currentRoom, 
   (env) => {
-    // INCOMING MESSAGE HANDLER
     if (env.type === 'chat') {
       console.log(`New chat from ${env.from.substring(0,5)}: ${env.payload.text}`);
       useStore.getState().addMessage({ 
@@ -69,7 +68,6 @@ const mesh = initMesh(currentRoom,
     }
   },
   (pid) => {
-    // PEER JOINED
     console.log(`Peer connected: ${pid.substring(0,5)}`);
     const p = useStore.getState().peers; 
     p.add(pid); 
@@ -77,7 +75,6 @@ const mesh = initMesh(currentRoom,
     renderUI();
   },
   (pid) => {
-    // PEER LEFT
     console.log(`Peer disconnected: ${pid.substring(0,5)}`);
     const p = useStore.getState().peers; 
     p.delete(pid); 
@@ -86,7 +83,7 @@ const mesh = initMesh(currentRoom,
   }
 );
 
-// Make variables globally accessible for commuter.js and creator.js
+// Expose globally for commuter.js and creator.js
 window.AppMesh = mesh;
 window.AppIdentity = identity;
 window.AppRoom = currentRoom;
@@ -122,11 +119,9 @@ window.copyIdentity = function() {
 function renderUI() {
   const state = useStore.getState();
   
-  // Update peer count
   const peerCountEl = document.getElementById('peer-count');
   if(peerCountEl) peerCountEl.innerText = `${state.peers.size} Peers`;
   
-  // Render Chat Messages
   const chatBox = document.getElementById('chat-messages-box');
   if(chatBox) {
     chatBox.innerHTML = `<div class="text-center text-[10px] text-slate-400 bg-slate-50 rounded-full py-1.5 px-4 inline-block mx-auto w-max block border border-slate-100 mb-3">Messages are signed and verified locally.</div>`;
@@ -135,7 +130,6 @@ function renderUI() {
       const div = document.createElement('div');
       div.className = msg.isSelf ? "flex items-end gap-2 max-w-[80%] ml-auto justify-end mb-3" : "flex items-end gap-2 max-w-[80%] mb-3";
       
-      // Safe text rendering
       const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
       
       div.innerHTML = msg.isSelf 
@@ -144,11 +138,9 @@ function renderUI() {
            <div class="bg-slate-100 p-2.5 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm break-words">${safeText}</div>`;
       chatBox.appendChild(div);
     });
-    // Auto-scroll to bottom
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // Render Radar Dots
   document.querySelectorAll('.radar-dot').forEach(el => el.remove());
   const radar = document.getElementById('radar-container');
   
@@ -156,10 +148,8 @@ function renderUI() {
     state.peers.forEach((pid) => {
       const dot = document.createElement('div');
       dot.className = "radar-dot absolute z-20 flex items-center justify-center transition-all duration-1000";
-      // Generate pseudo-random positions based on peer ID
       const topPos = 20 + (pid.charCodeAt(0) % 60);
       const leftPos = 20 + (pid.charCodeAt(1) % 60);
-      
       dot.style.top = `${topPos}%`;
       dot.style.left = `${leftPos}%`;
       
@@ -189,17 +179,13 @@ if (sendBtn && chatInput) {
     const env = createEnvelope('chat', currentRoom, identity.pubKey, identity.privKey, { text });
     
     if(env) {
-      // Add to our own UI immediately
       useStore.getState().addMessage({ id: env.id, sender: identity.shortId, text, isSelf: true });
-      
-      // Add to dedupe cache and send over mesh
       mesh.seenMessageIds.add(env.id);
       mesh.sendRaw(env);
-      
       chatInput.value = '';
       renderUI();
     } else {
-      console.error("Failed to create envelope. Is identity loaded?");
+      console.error("Failed to create envelope.");
     }
   };
 
@@ -209,6 +195,5 @@ if (sendBtn && chatInput) {
   });
 }
 
-// Initial Render
 renderUI();
 console.log("faBludar initialized successfully.");
