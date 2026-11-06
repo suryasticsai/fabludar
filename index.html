@@ -32,7 +32,7 @@
 
   <style>
     body { 
-      background-color: #f8fafc; 
+      background-color: #e2e8f0; 
       user-select: none; 
       -webkit-tap-highlight-color: transparent;
     }
@@ -56,13 +56,13 @@
     .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   </style>
 </head>
-<body class="min-h-[100dvh] flex items-center justify-center sm:p-4 bg-slate-200">
+<body class="min-h-[100dvh] flex items-center justify-center sm:p-4">
 
   <!-- Mobile Phone Frame (Desktop view only) -->
   <div class="relative w-full max-w-md h-[100dvh] sm:h-[850px] bg-slate-50 sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col sm:border-[10px] border-slate-900">
     
     <!-- App Header -->
-    <header class="glass px-5 py-4 border-b border-slate-100 flex items-center justify-between z-30 absolute top-0 w-full">
+    <header class="glass px-4 py-4 border-b border-slate-100 flex items-center justify-between z-30 absolute top-0 w-full">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center p-1">
           <img src="fabludar-logo.png" alt="Logo" class="w-full h-full object-contain rounded-xl">
@@ -79,11 +79,18 @@
         </div>
       </div>
       
-      <!-- Identity Badge -->
-      <button onclick="copyIdentity()" class="bg-slate-100 hover:bg-slate-200 transition px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200">
-        <i class="fa-solid fa-fingerprint text-brand-600 text-sm"></i>
-        <span class="text-xs font-bold text-slate-700" id="my-id-badge">Generating...</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- Debug Terminal Icon -->
+        <button onclick="switchPage('debug')" class="w-8 h-8 rounded-full bg-slate-800 text-emerald-400 flex items-center justify-center shadow-sm hover:bg-slate-700 transition">
+          <i class="fa-solid fa-terminal text-xs"></i>
+        </button>
+        
+        <!-- Identity Badge -->
+        <button onclick="copyIdentity()" class="bg-slate-100 hover:bg-slate-200 transition px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200">
+          <i class="fa-solid fa-fingerprint text-brand-600 text-sm"></i>
+          <span class="text-xs font-bold text-slate-700" id="my-id-badge">...</span>
+        </button>
+      </div>
     </header>
 
     <!-- Scrollable Content Area -->
@@ -217,7 +224,7 @@
       <section id="page-feed" class="page overflow-y-auto no-scrollbar p-5 space-y-4">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-bold text-slate-800">Mesh Feed</h2>
-          <button onclick="openComposeModal()" class="text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-brand-100">
+          <button onclick="alert('Post creation coming soon!')" class="text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-brand-100">
             <i class="fa-solid fa-pen mr-1"></i> Post
           </button>
         </div>
@@ -262,19 +269,41 @@
         </div>
       </section>
 
+      <!-- ================= PAGE 4: DEBUG CONSOLE ================= -->
+      <section id="page-debug" class="page overflow-hidden p-4 flex-col bg-slate-900 font-mono">
+        
+        <!-- Console Actions -->
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-xs font-bold text-slate-400 tracking-widest uppercase">System Logs</h2>
+          <div class="flex gap-2">
+            <button onclick="copyLogs()" class="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-700 transition">
+              <i class="fa-regular fa-copy mr-1"></i> Copy
+            </button>
+            <button onclick="clearLogs()" class="text-[10px] bg-rose-900/50 text-rose-400 px-3 py-1.5 rounded-md border border-rose-900 hover:bg-rose-900 transition">
+              <i class="fa-solid fa-trash-can mr-1"></i> Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Log Output Area -->
+        <div id="console-output" class="flex-1 bg-black/50 rounded-xl p-3 overflow-y-auto text-[10px] leading-relaxed text-slate-300 border border-slate-800 break-words whitespace-pre-wrap">
+          <div class="text-emerald-500">> Console initialized. Waiting for network events...</div>
+        </div>
+      </section>
+
     </main>
 
     <!-- Bottom Navigation Bar -->
     <nav class="absolute bottom-0 w-full glass border-t border-slate-200 px-6 py-3 pb-6 flex justify-between items-center z-40 rounded-b-[30px] sm:rounded-b-[30px]">
-      <button onclick="switchPage('radar')" class="nav-btn flex flex-col items-center gap-1 text-brand-600">
+      <button onclick="switchPage('radar')" id="nav-radar" class="nav-btn flex flex-col items-center gap-1 text-brand-600">
         <i class="fa-solid fa-radar text-xl"></i>
         <span class="text-[10px] font-bold">Radar</span>
       </button>
-      <button onclick="switchPage('commute')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
+      <button onclick="switchPage('commute')" id="nav-commute" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
         <i class="fa-solid fa-bus text-xl"></i>
         <span class="text-[10px] font-bold">Commute</span>
       </button>
-      <button onclick="switchPage('feed')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
+      <button onclick="switchPage('feed')" id="nav-feed" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
         <i class="fa-solid fa-layer-group text-xl"></i>
         <span class="text-[10px] font-bold">Feed</span>
       </button>
