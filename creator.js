@@ -1,59 +1,30 @@
+window.toggleFABModal = function() {
+  const modal = document.getElementById('fab-modal');
+  // Since we removed FAB modal from index.html to save space, let's just alert for now
+  alert("Quick Actions Menu: Post, SOS, Share Location.");
+};
+
 window.showQRCode = function() {
   const modal = document.getElementById('qr-modal');
   if(!modal) return;
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  
   const qrContainer = document.getElementById('qrcode-container');
   qrContainer.innerHTML = ''; 
-  
-  const currentRoom = window.AppRoom || 'global-mesh';
-  const roomLink = `${window.location.origin}${window.location.pathname}?room=${currentRoom}`;
-  
-  new QRCode(qrContainer, {
-    text: roomLink, width: 180, height: 180, colorDark : "#1e293b", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
-  });
+  const roomLink = `${window.location.origin}${window.location.pathname}?room=global-mesh`;
+  new QRCode(qrContainer, { text: roomLink, width: 180, height: 180, colorDark : "#1e293b", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
 };
 
-window.closeQRCode = function() {
-  const modal = document.getElementById('qr-modal');
-  if(modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-  }
-};
+window.closeQRCode = () => { const m = document.getElementById('qr-modal'); if(m) { m.classList.add('hidden'); m.classList.remove('flex'); } };
+window.copyRoomLink = () => { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=global-mesh`); alert("Link copied!"); };
+window.closePrivateChat = () => { document.getElementById('private-chat-modal').classList.add('hidden'); document.getElementById('private-chat-modal').classList.remove('flex'); };
+window.closeNoteModal = () => { document.getElementById('note-modal').classList.add('hidden'); document.getElementById('note-modal').classList.remove('flex'); };
+window.wipeData = () => { if(confirm("Wipe data?")) { localStorage.clear(); window.location.reload(); } };
 
-window.copyRoomLink = function() {
-  const currentRoom = window.AppRoom || 'global-mesh';
-  const link = `${window.location.origin}${window.location.pathname}?room=${currentRoom}`;
-  navigator.clipboard.writeText(link);
-  alert("Link copied to clipboard!");
-};
-
-// FAB Modal Logic
-window.toggleFABModal = function() {
-  const modal = document.getElementById('fab-modal');
-  if (modal.classList.contains('hidden')) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => modal.classList.add('open'), 10);
-  } else {
-    closeFABModal();
-  }
-};
-
-window.closeFABModal = function() {
-  const modal = document.getElementById('fab-modal');
-  modal.classList.remove('open');
-  setTimeout(() => {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-  }, 300);
-};
-
-window.wipeData = function() {
-  if (confirm("Are you sure you want to delete your identity and wipe all local data? This cannot be undone.")) {
-    localStorage.clear();
-    window.location.reload();
-  }
+window.switchPage = function(pageName) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${pageName}`).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(btn => { btn.classList.remove('text-brand-600'); btn.classList.add('text-slate-400'); });
+  const nav = document.getElementById(`nav-${pageName}`);
+  if(nav) { nav.classList.remove('text-slate-400'); nav.classList.add('text-brand-600'); }
 };
