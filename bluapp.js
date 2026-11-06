@@ -17,6 +17,7 @@ function appendToConsole(type, args) {
   let color = type === 'error' ? 'text-rose-400' : type === 'warn' ? 'text-amber-400' : 'text-emerald-400';
   const formattedLog = `<span class="text-slate-500">[${time}]</span> <span class="${color}">${msg}</span>`;
   logHistory.push(formattedLog);
+  
   const outputEl = document.getElementById('console-output');
   if (outputEl) {
     outputEl.innerHTML += `<div class="mb-1">${formattedLog}</div>`;
@@ -37,22 +38,29 @@ window.clearLogs = function() {
 };
 
 // ==========================================
-// 1. BOOTSTRAP
+// 1. BOOTSTRAP & MESH SETUP
 // ==========================================
 const identity = getIdentity();
 document.getElementById('my-id-badge').innerText = identity.shortId;
 
-// Populate Settings Page with Public Key
 const settingsPubKey = document.getElementById('settings-pubkey');
 if(settingsPubKey) settingsPubKey.innerText = identity.pubKey;
 
 const currentRoom = new URLSearchParams(window.location.search).get('room') || 'global-mesh';
 document.getElementById('room-name-display').innerText = currentRoom;
 
+// Initialize the P2P Mesh
 const mesh = initMesh(currentRoom, 
   (env) => {
+    // INCOMING MESSAGE HANDLER
     if (env.type === 'chat') {
-      useStore.getState().addMessage({ id: env.id, sender: env.from.substring(0,5), text: env.payload.text, isSelf: false });
+      console.log(`New chat from ${env.from.substring(0,5)}: ${env.payload.text}`);
+      useStore.getState().addMessage({ 
+        id: env.id, 
+        sender: env.from.substring(0,5), 
+        text: env.payload.text, 
+        isSelf: false 
+      });
       renderUI();
     }
     if (env.type === 'vote' && window.updateVotesUI) {
@@ -61,21 +69,30 @@ const mesh = initMesh(currentRoom,
     }
   },
   (pid) => {
-    console.log(`Peer joined: ${pid.substring(0,5)}`);
-    const p = useStore.getState().peers; p.add(pid); useStore.getState().setPeers(p); renderUI();
+    // PEER JOINED
+    console.log(`Peer connected: ${pid.substring(0,5)}`);
+    const p = useStore.getState().peers; 
+    p.add(pid); 
+    useStore.getState().setPeers(p); 
+    renderUI();
   },
   (pid) => {
-    const p = useStore.getState().peers; p.delete(pid); useStore.getState().setPeers(p); renderUI();
+    // PEER LEFT
+    console.log(`Peer disconnected: ${pid.substring(0,5)}`);
+    const p = useStore.getState().peers; 
+    p.delete(pid); 
+    useStore.getState().setPeers(p); 
+    renderUI();
   }
 );
 
-// Make mesh accessible to other modules
+// Make variables globally accessible for commuter.js and creator.js
 window.AppMesh = mesh;
 window.AppIdentity = identity;
 window.AppRoom = currentRoom;
 
 // ==========================================
-// 2. UI & PAGE ROUTING
+// 2. UI ROUTING & HELPERS
 // ==========================================
 window.switchPage = function(pageName) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -100,64 +117,98 @@ window.copyIdentity = function() {
 };
 
 // ==========================================
-// 3. RENDER LOGIC (Radar & Chat)
+// 3. RENDER LOGIC (Chat & Radar)
 // ==========================================
 function renderUI() {
   const state = useStore.getState();
-  document.getElementById('peer-count').innerText = `${state.peers.size} Peers`;
   
+  // Update peer count
+  const peerCountEl = document.getElementById('peer-count');
+  if(peerCountEl) peerCountEl.innerText = `${state.peers.size} Peers`;
+  
+  // Render Chat Messages
   const chatBox = document.getElementById('chat-messages-box');
-  chatBox.innerHTML = `<div class="text-center text-[10px] text-slate-400 bg-slate-50 rounded-full py-1.5 px-4 inline-block mx-auto w-max block border border-slate-100">Messages are signed and verified locally.</div>`;
-  
-  state.messages.forEach(msg => {
-    const div = document.createElement('div');
-    div.className = msg.isSelf ? "flex items-end gap-2 max-w-[80%] ml-auto justify-end" : "flex items-end gap-2 max-w-[80%]";
-    div.innerHTML = msg.isSelf 
-      ? `<div class="bg-brand-600 p-2.5 rounded-2xl rounded-br-none text-xs text-white shadow-sm">${msg.text}</div>`
-      : `<div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold">${msg.sender.charAt(0).toUpperCase()}</div>
-         <div class="bg-slate-100 p-2.5 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm">${msg.text}</div>`;
-    chatBox.appendChild(div);
-  });
-  chatBox.scrollTop = chatBox.scrollHeight;
+  if(chatBox) {
+    chatBox.innerHTML = `<div class="text-center text-[10px] text-slate-400 bg-slate-50 rounded-full py-1.5 px-4 inline-block mx-auto w-max block border border-slate-100 mb-3">Messages are signed and verified locally.</div>`;
+    
+    state.messages.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = msg.isSelf ? "flex items-end gap-2 max-w-[80%] ml-auto justify-end mb-3" : "flex items-end gap-2 max-w-[80%] mb-3";
+      
+      // Safe text rendering
+      const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      
+      div.innerHTML = msg.isSelf 
+        ? `<div class="bg-brand-600 p-2.5 rounded-2xl rounded-br-none text-xs text-white shadow-sm break-words">${safeText}</div>`
+        : `<div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[9px] font-bold shrink-0">${msg.sender.charAt(0).toUpperCase()}</div>
+           <div class="bg-slate-100 p-2.5 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm break-words">${safeText}</div>`;
+      chatBox.appendChild(div);
+    });
+    // Auto-scroll to bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
 
+  // Render Radar Dots
   document.querySelectorAll('.radar-dot').forEach(el => el.remove());
   const radar = document.getElementById('radar-container');
   
-  state.peers.forEach((pid) => {
-    const dot = document.createElement('div');
-    dot.className = "radar-dot absolute z-20 flex items-center justify-center transition-all duration-1000";
-    dot.style.top = `${Math.floor(Math.random() * 60) + 20}%`;
-    dot.style.left = `${Math.floor(Math.random() * 60) + 20}%`;
-    
-    dot.innerHTML = `
-      <div class="relative flex h-6 w-6 items-center justify-center">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-        <div class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border-2 border-white shadow-sm items-center justify-center text-[8px] text-white font-bold" title="${pid}">
-          <i class="fa-solid fa-user"></i>
+  if(radar) {
+    state.peers.forEach((pid) => {
+      const dot = document.createElement('div');
+      dot.className = "radar-dot absolute z-20 flex items-center justify-center transition-all duration-1000";
+      // Generate pseudo-random positions based on peer ID
+      const topPos = 20 + (pid.charCodeAt(0) % 60);
+      const leftPos = 20 + (pid.charCodeAt(1) % 60);
+      
+      dot.style.top = `${topPos}%`;
+      dot.style.left = `${leftPos}%`;
+      
+      dot.innerHTML = `
+        <div class="relative flex h-6 w-6 items-center justify-center">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <div class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border-2 border-white shadow-sm items-center justify-center text-[8px] text-white font-bold" title="Peer ${pid.substring(0,5)}">
+            <i class="fa-solid fa-user"></i>
+          </div>
         </div>
-      </div>
-    `;
-    radar.appendChild(dot);
-  });
+      `;
+      radar.appendChild(dot);
+    });
+  }
 }
 
 // Send Message
-document.getElementById('send-btn').addEventListener('click', () => {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
-  
-  const env = createEnvelope('chat', currentRoom, identity.pubKey, identity.privKey, { text });
-  
-  if(env) {
-    useStore.getState().addMessage({ id: env.id, sender: identity.shortId, text, isSelf: true });
-    mesh.seenMessageIds.add(env.id);
-    mesh.sendRaw(env);
-    input.value = '';
-    renderUI();
-  }
-});
-document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
+const sendBtn = document.getElementById('send-btn');
+const chatInput = document.getElementById('chat-input');
 
+if (sendBtn && chatInput) {
+  const sendMessage = () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    
+    console.log("Sending message: " + text);
+    const env = createEnvelope('chat', currentRoom, identity.pubKey, identity.privKey, { text });
+    
+    if(env) {
+      // Add to our own UI immediately
+      useStore.getState().addMessage({ id: env.id, sender: identity.shortId, text, isSelf: true });
+      
+      // Add to dedupe cache and send over mesh
+      mesh.seenMessageIds.add(env.id);
+      mesh.sendRaw(env);
+      
+      chatInput.value = '';
+      renderUI();
+    } else {
+      console.error("Failed to create envelope. Is identity loaded?");
+    }
+  };
+
+  sendBtn.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keypress', (e) => { 
+    if (e.key === 'Enter') sendMessage(); 
+  });
+}
+
+// Initial Render
 renderUI();
 console.log("faBludar initialized successfully.");
