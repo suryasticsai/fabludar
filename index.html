@@ -113,23 +113,39 @@
         <!-- Radar Widget -->
         <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm text-center relative overflow-hidden">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Local Radar</span>
-            <span class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100" id="peer-count">0 Peers</span>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <i class="fa-solid fa-satellite-dish text-brand-400"></i> Local Radar
+            </span>
+            <span class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100 shadow-sm" id="peer-count">0 Peers</span>
           </div>
 
-          <div class="relative w-56 h-56 mx-auto my-4 rounded-full border-2 border-brand-50 bg-slate-50/50 flex items-center justify-center overflow-hidden" id="radar-container">
+          <div class="relative w-56 h-56 mx-auto my-4 rounded-full border-2 border-brand-50 bg-slate-50/50 flex items-center justify-center overflow-hidden shadow-inner" id="radar-container">
+            <!-- Concentric Rings -->
             <div class="absolute w-40 h-40 rounded-full border border-brand-100"></div>
             <div class="absolute w-24 h-24 rounded-full border border-brand-200/50"></div>
             <div class="absolute w-10 h-10 rounded-full border border-brand-300/30"></div>
             
+            <!-- Sweeper Animation -->
             <div class="absolute w-full h-full radar-sweeper pointer-events-none">
               <div class="w-1/2 h-1/2 bg-gradient-to-br from-brand-400/30 to-transparent origin-bottom-right rounded-tl-full"></div>
             </div>
             
-            <!-- Self Dot -->
-            <div class="w-5 h-5 rounded-full bg-brand-600 border-[3px] border-white shadow-lg z-10"></div>
+            <!-- Self Icon (Center) -->
+            <div class="relative z-10 flex flex-col items-center justify-center">
+              <!-- Outer Glow Ring -->
+              <div class="absolute w-12 h-12 rounded-full border border-brand-400/50 animate-ping"></div>
+              <!-- Avatar Icon -->
+              <div class="w-9 h-9 rounded-full bg-brand-600 border-[3px] border-white shadow-lg flex items-center justify-center">
+                <i class="fa-solid fa-user text-white text-xs"></i>
+              </div>
+              <!-- You Label -->
+              <span class="absolute -bottom-6 text-[9px] font-bold text-brand-600 bg-white px-2 py-0.5 rounded-full shadow-sm border border-slate-100">YOU</span>
+            </div>
           </div>
-          <p class="text-xs text-slate-500 font-medium">Scanning for nearby peers...</p>
+          
+          <p class="text-xs text-slate-500 font-medium mt-4">
+            <i class="fa-solid fa-circle-info text-slate-400 mr-1"></i> Scanning for nearby peers...
+          </p>
         </div>
 
         <!-- Chat Interface -->
