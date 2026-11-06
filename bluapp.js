@@ -1,4 +1,4 @@
-import { getIdentity, signPayload } from './lib/crypto.js';
+import { getIdentity } from './lib/crypto.js';
 import { createEnvelope } from './lib/protocol.js';
 import { useStore } from './lib/store.js';
 import { initMesh } from './lib/mesh.js';
@@ -39,16 +39,18 @@ window.clearLogs = function() {
 // ==========================================
 // 1. BOOTSTRAP
 // ==========================================
-window.signPayload = signPayload; // Expose globally so protocol.js can use it synchronously
 const identity = getIdentity();
 document.getElementById('my-id-badge').innerText = identity.shortId;
+
+// Populate Settings Page with Public Key
+const settingsPubKey = document.getElementById('settings-pubkey');
+if(settingsPubKey) settingsPubKey.innerText = identity.pubKey;
 
 const currentRoom = new URLSearchParams(window.location.search).get('room') || 'global-mesh';
 document.getElementById('room-name-display').innerText = currentRoom;
 
 const mesh = initMesh(currentRoom, 
   (env) => {
-    // Incoming Message Handler
     if (env.type === 'chat') {
       useStore.getState().addMessage({ id: env.id, sender: env.from.substring(0,5), text: env.payload.text, isSelf: false });
       renderUI();
@@ -66,6 +68,11 @@ const mesh = initMesh(currentRoom,
     const p = useStore.getState().peers; p.delete(pid); useStore.getState().setPeers(p); renderUI();
   }
 );
+
+// Make mesh accessible to other modules
+window.AppMesh = mesh;
+window.AppIdentity = identity;
+window.AppRoom = currentRoom;
 
 // ==========================================
 // 2. UI & PAGE ROUTING
