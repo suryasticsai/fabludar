@@ -196,4 +196,4 @@ if (sendBtn && chatInput) {
 }
 
 renderUI();
-console.log("faBludar initialized successfully.");
+console.log("faBludar initialized successfully."); 
