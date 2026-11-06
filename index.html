@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>faBludar</title>
   <link rel="icon" href="fabludar-logo.png" type="image/png">
-  
+
   <!-- Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- QR Code Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -21,9 +21,11 @@
           colors: {
             brand: {
               50: '#eff6ff', 100: '#dbeafe', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-            },
-            darkbg: '#0f172a',
-            darkcard: '#1e293b',
+            }
+          },
+          boxShadow: {
+            'glow': '0 0 20px -5px rgba(37, 99, 235, 0.4)',
+            'glass': '0 4px 30px rgba(0, 0, 0, 0.05)',
           }
         }
       }
@@ -35,137 +37,157 @@
       background-color: #e2e8f0; 
       user-select: none; 
       -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
     }
-    
+
     /* Radar Animation */
     @keyframes radar-sweep { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .radar-sweeper { animation: radar-sweep 4s linear infinite; transform-origin: center center; }
-    
-    @keyframes pulse-dot { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.5); opacity: 0.4; } }
-    .pulse-node { animation: pulse-dot 2s infinite ease-in-out; }
+    .radar-sweeper { animation: radar-sweep 3s linear infinite; transform-origin: center center; }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.5; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+    .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
 
     /* Hide Scrollbar */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     /* Page Transition */
-    .page { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
-    .page.active { display: flex; opacity: 1; flex-direction: column; height: 100%; }
-    
+    .page { display: none; opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; }
+    .page.active { display: flex; opacity: 1; transform: translateY(0); flex-direction: column; height: 100%; }
+
     /* Custom Glass Effect */
-    .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .glass { 
+      background: rgba(255, 255, 255, 0.85); 
+      backdrop-filter: blur(16px); 
+      -webkit-backdrop-filter: blur(16px); 
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    }
 
     /* FAB Modal Animation */
     .fab-modal { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; transform: translateY(100%); opacity: 0; }
     .fab-modal.open { transform: translateY(0); opacity: 1; }
+
+    /* Tech Grid Background */
+    .tech-grid {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 16px 16px;
+      background-position: center;
+    }
   </style>
 </head>
 <body class="min-h-[100dvh] flex items-center justify-center sm:p-4">
 
   <!-- Mobile Phone Frame (Desktop view only) -->
   <div class="relative w-full max-w-md h-[100dvh] sm:h-[850px] bg-slate-50 sm:rounded-[40px] sm:shadow-2xl overflow-hidden flex flex-col sm:border-[10px] border-slate-900">
-    
+
     <!-- App Header -->
-    <header class="glass px-4 py-4 border-b border-slate-100 flex items-center justify-between z-30 absolute top-0 w-full">
+    <header class="glass px-4 py-3 flex items-center justify-between z-30 absolute top-0 w-full shadow-glass">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center p-1">
           <img src="fabludar-logo.png" alt="Logo" class="w-full h-full object-contain rounded-xl">
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight text-slate-800 leading-none">faBludar</h1>
-          <div class="flex items-center gap-1 mt-1">
+          <h1 class="text-xl font-extrabold tracking-tight text-slate-800 leading-none">faBludar</h1>
+          <div class="flex items-center gap-1.5 mt-1">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span class="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider" id="mesh-status">Mesh Active</span>
+            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider" id="mesh-status">Mesh Active</span>
           </div>
         </div>
       </div>
-      
+
       <div class="flex items-center gap-2">
         <!-- Debug Terminal Icon -->
-        <button onclick="switchPage('debug')" class="w-8 h-8 rounded-full bg-slate-800 text-emerald-400 flex items-center justify-center shadow-sm hover:bg-slate-700 transition">
+        <button onclick="switchPage('debug')" class="w-9 h-9 rounded-full bg-slate-900 text-emerald-400 flex items-center justify-center shadow-md hover:bg-slate-800 transition active:scale-95">
           <i class="fa-solid fa-terminal text-xs"></i>
         </button>
-        
+
         <!-- Identity Badge -->
-        <button onclick="copyIdentity()" class="bg-slate-100 hover:bg-slate-200 transition px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200">
+        <button onclick="copyIdentity()" class="bg-white hover:bg-slate-50 transition px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200 shadow-sm active:scale-95">
           <i class="fa-solid fa-fingerprint text-brand-600 text-sm"></i>
-          <span class="text-xs font-bold text-slate-700" id="my-id-badge">...</span>
+          <span class="text-xs font-bold text-slate-700 font-mono" id="my-id-badge">...</span>
         </button>
       </div>
     </header>
 
     <!-- Scrollable Content Area -->
-    <main class="flex-1 overflow-hidden relative mt-[72px] mb-[80px]">
-      
+    <!-- pb-[90px] ensures content isn't hidden behind the bottom nav -->
+    <main class="flex-1 overflow-hidden relative mt-[68px]">
+
       <!-- ================= PAGE 1: RADAR & CHAT ================= -->
-      <section id="page-radar" class="page active overflow-y-auto no-scrollbar p-5 space-y-5">
-        
+      <section id="page-radar" class="page active overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-5">
+
         <!-- Room Info & QR -->
         <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Current Room</p>
-            <h3 class="text-sm font-bold text-slate-800" id="room-name-display">global-mesh</h3>
+            <h3 class="text-sm font-extrabold text-slate-800" id="room-name-display">global-mesh</h3>
           </div>
-          <button onclick="showQRCode()" class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center hover:bg-brand-100 transition shadow-sm">
-            <i class="fa-solid fa-qrcode"></i>
+          <button onclick="showQRCode()" class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center hover:bg-brand-100 transition shadow-sm active:scale-95">
+            <i class="fa-solid fa-qrcode text-lg"></i>
           </button>
         </div>
 
         <!-- Radar Widget -->
         <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm text-center relative overflow-hidden">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <i class="fa-solid fa-satellite-dish text-brand-400"></i> Local Radar
             </span>
             <span class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100 shadow-sm" id="peer-count">0 Peers</span>
           </div>
 
-          <div class="relative w-56 h-56 mx-auto my-4 rounded-full border-2 border-brand-50 bg-slate-50/50 flex items-center justify-center overflow-hidden shadow-inner" id="radar-container">
-            <div class="absolute w-40 h-40 rounded-full border border-brand-100"></div>
-            <div class="absolute w-24 h-24 rounded-full border border-brand-200/50"></div>
-            <div class="absolute w-10 h-10 rounded-full border border-brand-300/30"></div>
-            
+          <!-- Radar Circle with Tech Grid -->
+          <div class="relative w-56 h-56 mx-auto my-4 rounded-full border-2 border-brand-50 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner tech-grid" id="radar-container">
+            <div class="absolute w-40 h-40 rounded-full border border-brand-200/50"></div>
+            <div class="absolute w-24 h-24 rounded-full border border-brand-300/40"></div>
+            <div class="absolute w-10 h-10 rounded-full border border-brand-400/20"></div>
+
+            <!-- Sweeper -->
             <div class="absolute w-full h-full radar-sweeper pointer-events-none">
-              <div class="w-1/2 h-1/2 bg-gradient-to-br from-brand-400/30 to-transparent origin-bottom-right rounded-tl-full"></div>
+              <div class="w-1/2 h-1/2 bg-gradient-to-br from-brand-500/30 to-transparent origin-bottom-right rounded-tl-full"></div>
             </div>
-            
+
+            <!-- Self Node -->
             <div class="relative z-10 flex flex-col items-center justify-center">
-              <div class="absolute w-12 h-12 rounded-full border border-brand-400/50 animate-ping"></div>
-              <div class="w-9 h-9 rounded-full bg-brand-600 border-[3px] border-white shadow-lg flex items-center justify-center">
-                <i class="fa-solid fa-user text-white text-xs"></i>
+              <div class="absolute w-12 h-12 rounded-full bg-brand-400/30 pulse-ring"></div>
+              <div class="w-10 h-10 rounded-full bg-brand-600 border-[3px] border-white shadow-glow flex items-center justify-center">
+                <i class="fa-solid fa-user text-white text-sm"></i>
               </div>
-              <span class="absolute -bottom-6 text-[9px] font-bold text-brand-600 bg-white px-2 py-0.5 rounded-full shadow-sm border border-slate-100">YOU</span>
+              <span class="absolute -bottom-6 text-[9px] font-extrabold text-brand-700 bg-white px-2 py-0.5 rounded-full shadow-sm border border-brand-100">YOU</span>
             </div>
           </div>
-          
-          <p class="text-xs text-slate-500 font-medium mt-4">
+
+          <p class="text-[11px] text-slate-500 font-medium mt-4 bg-slate-50 py-1.5 rounded-lg border border-slate-100">
             <i class="fa-solid fa-circle-info text-slate-400 mr-1"></i> Scanning for nearby peers...
           </p>
         </div>
 
         <!-- Chat Interface -->
-        <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col h-80 overflow-hidden">
-          <div class="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+        <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col h-[340px] overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+            <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
               <i class="fa-solid fa-comments text-brand-500"></i> Mesh Chat
             </h3>
-            <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">E2E Encrypted</span>
+            <span class="text-[9px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">E2E Encrypted</span>
           </div>
-          
-          <div class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar" id="chat-messages-box">
-            <div class="text-center text-[10px] text-slate-400 bg-slate-50 rounded-full py-1.5 px-4 inline-block mx-auto w-max block border border-slate-100">
+
+          <div class="flex-1 p-4 overflow-y-auto space-y-3 no-scrollbar bg-slate-50/30" id="chat-messages-box">
+            <div class="text-center text-[10px] text-slate-400 bg-white rounded-full py-1.5 px-4 inline-block mx-auto w-max block border border-slate-100 shadow-sm">
               Messages are signed and verified locally.
             </div>
           </div>
-          
+
           <div class="p-3 border-t border-slate-50 bg-white">
-            <div class="flex items-center bg-slate-100 rounded-full pr-1 pl-4 py-1">
+            <div class="flex items-center bg-slate-100 rounded-full pr-1.5 pl-4 py-1.5 border border-transparent focus-within:border-brand-300 focus-within:bg-white transition-all shadow-inner">
               <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-transparent text-sm outline-none text-slate-700 placeholder-slate-400">
-              <button id="send-btn" class="bg-brand-600 hover:bg-brand-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-md">
-                <i class="fa-solid fa-paper-plane text-sm"></i>
+              <button id="send-btn" class="bg-brand-600 hover:bg-brand-700 text-white w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-90 shadow-md">
+                <i class="fa-solid fa-paper-plane text-xs"></i>
               </button>
             </div>
           </div>
@@ -173,52 +195,52 @@
       </section>
 
       <!-- ================= PAGE 2: COMMUTE & TRUTH ================= -->
-      <section id="page-commute" class="page overflow-y-auto no-scrollbar p-5 space-y-5">
-        <div class="bg-gradient-to-br from-brand-600 to-brand-700 rounded-[2rem] p-6 text-white shadow-lg relative overflow-hidden">
+      <section id="page-commute" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-5">
+        <div class="bg-gradient-to-br from-brand-600 to-brand-800 rounded-[2rem] p-6 text-white shadow-lg relative overflow-hidden">
           <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
           <div class="flex justify-between items-start relative z-10">
             <div>
-              <p class="text-brand-100 text-xs font-semibold uppercase tracking-wider mb-1">Active Route</p>
-              <h2 class="text-2xl font-bold">Route 42 - Express</h2>
-              <p class="text-brand-100 text-sm mt-1"><i class="fa-solid fa-location-dot mr-1"></i> Downtown ➔ Tech Park</p>
+              <p class="text-brand-200 text-[10px] font-bold uppercase tracking-wider mb-1">Active Route</p>
+              <h2 class="text-2xl font-extrabold">Route 42 - Express</h2>
+              <p class="text-brand-100 text-xs mt-1.5 font-medium"><i class="fa-solid fa-location-dot mr-1"></i> Downtown ➔ Tech Park</p>
             </div>
-            <div class="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-              <span class="block text-3xl font-black" id="eta-display">--</span>
-              <span class="text-[10px] uppercase font-bold text-brand-100">Mins ETA</span>
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 text-center border border-white/20 shadow-inner">
+              <span class="block text-3xl font-black leading-none" id="eta-display">--</span>
+              <span class="text-[9px] uppercase font-bold text-brand-100 tracking-wider">Mins ETA</span>
             </div>
           </div>
         </div>
 
         <div class="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
-          <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+          <h3 class="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2">
             <i class="fa-solid fa-users-viewfinder text-brand-500"></i> Crowdsourced Status
           </h3>
           <p class="text-xs text-slate-500 mb-4">Vote to update the mesh for everyone.</p>
-          
+
           <div class="grid grid-cols-2 gap-3 mb-4">
-            <button onclick="castVote('eta', 5)" class="bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 p-3 rounded-2xl transition text-left">
+            <button onclick="castVote('eta', 5)" class="bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 p-3 rounded-2xl transition text-left active:scale-95">
               <span class="block text-lg font-bold text-slate-800">5 min</span>
               <span class="text-[10px] text-slate-500">Arriving Soon</span>
             </button>
-            <button onclick="castVote('eta', 15)" class="bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 p-3 rounded-2xl transition text-left">
+            <button onclick="castVote('eta', 15)" class="bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 p-3 rounded-2xl transition text-left active:scale-95">
               <span class="block text-lg font-bold text-slate-800">15 min</span>
               <span class="text-[10px] text-slate-500">Delayed</span>
             </button>
           </div>
 
           <div class="bg-slate-50 rounded-xl p-3 flex justify-between items-center border border-slate-100">
-            <span class="text-xs font-semibold text-slate-600">Bus Fullness</span>
-            <div class="flex gap-1">
-              <button onclick="castVote('fullness', 'empty')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-emerald-500 shadow-sm"><i class="fa-solid fa-chair"></i></button>
-              <button onclick="castVote('fullness', 'half')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-amber-500 shadow-sm"><i class="fa-solid fa-users"></i></button>
-              <button onclick="castVote('fullness', 'full')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-rose-500 shadow-sm"><i class="fa-solid fa-users-rays"></i></button>
+            <span class="text-xs font-bold text-slate-600">Bus Fullness</span>
+            <div class="flex gap-1.5">
+              <button onclick="castVote('fullness', 'empty')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-emerald-500 shadow-sm active:scale-90 transition"><i class="fa-solid fa-chair"></i></button>
+              <button onclick="castVote('fullness', 'half')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-amber-500 shadow-sm active:scale-90 transition"><i class="fa-solid fa-users"></i></button>
+              <button onclick="castVote('fullness', 'full')" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-rose-500 shadow-sm active:scale-90 transition"><i class="fa-solid fa-users-rays"></i></button>
             </div>
           </div>
         </div>
 
         <div class="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-slate-800">Live Seat Map</h3>
+            <h3 class="text-sm font-extrabold text-slate-800">Live Seat Map</h3>
             <div class="flex items-center gap-3 text-[10px] font-bold text-slate-500">
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-brand-500 inline-block"></span> Free</span>
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-slate-300 inline-block"></span> Taken</span>
@@ -231,9 +253,9 @@
       </section>
 
       <!-- ================= PAGE 3: FEED ================= -->
-      <section id="page-feed" class="page overflow-y-auto no-scrollbar p-5 space-y-4">
+      <section id="page-feed" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-slate-800">Mesh Feed</h2>
+          <h2 class="text-lg font-extrabold text-slate-800">Mesh Feed</h2>
         </div>
 
         <div class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
@@ -250,46 +272,24 @@
           <h3 class="text-sm font-bold text-slate-800 leading-snug">Heavy traffic near Central Bridge</h3>
           <p class="text-xs text-slate-600 leading-relaxed">If you are taking the 8:15 bus, expect a 10-minute delay. The left lane is blocked.</p>
           <div class="flex items-center gap-4 pt-2 text-slate-400 text-xs">
-            <button class="flex items-center gap-1 hover:text-brand-500"><i class="fa-regular fa-heart"></i> 12</button>
-            <button class="flex items-center gap-1 hover:text-brand-500"><i class="fa-regular fa-comment"></i> 3</button>
-          </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs">S</div>
-              <div>
-                <h4 class="text-xs font-bold text-slate-800">Sarah M.</h4>
-                <p class="text-[10px] text-slate-400">15 mins ago</p>
-              </div>
-            </div>
-            <span class="bg-brand-50 text-brand-700 text-[10px] font-bold px-2 py-1 rounded-lg">#LostAndFound</span>
-          </div>
-          <h3 class="text-sm font-bold text-slate-800 leading-snug">Found a blue water bottle</h3>
-          <p class="text-xs text-slate-600 leading-relaxed">Left it with the driver at the front. DM me if it's yours!</p>
-          <div class="flex items-center gap-4 pt-2 text-slate-400 text-xs">
-            <button class="flex items-center gap-1 hover:text-brand-500"><i class="fa-regular fa-heart"></i> 4</button>
+            <button class="flex items-center gap-1 hover:text-brand-500 active:scale-90 transition"><i class="fa-regular fa-heart"></i> 12</button>
+            <button class="flex items-center gap-1 hover:text-brand-500 active:scale-90 transition"><i class="fa-regular fa-comment"></i> 3</button>
           </div>
         </div>
       </section>
 
       <!-- ================= PAGE 4: SETTINGS ================= -->
-      <section id="page-settings" class="page overflow-y-auto no-scrollbar p-5 space-y-4 bg-slate-50">
-        
-        <!-- Profile Card -->
+      <section id="page-settings" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] space-y-4 bg-slate-50">
         <div class="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm text-center">
-          <div class="w-20 h-20 mx-auto bg-brand-100 rounded-full flex items-center justify-center mb-3">
+          <div class="w-20 h-20 mx-auto bg-brand-100 rounded-full flex items-center justify-center mb-3 border-4 border-white shadow-md">
             <i class="fa-solid fa-user text-brand-600 text-3xl"></i>
           </div>
-          <h2 class="text-lg font-bold text-slate-800">Anonymous Commuter</h2>
-          <p class="text-xs text-slate-500 mt-1 font-mono" id="settings-pubkey">Loading key...</p>
-          <button onclick="copyIdentity()" class="mt-3 text-xs bg-slate-100 text-slate-600 px-4 py-1.5 rounded-full font-semibold border border-slate-200">Copy Public Key</button>
+          <h2 class="text-lg font-extrabold text-slate-800">Anonymous Commuter</h2>
+          <p class="text-[10px] text-slate-500 mt-1 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100 truncate" id="settings-pubkey">Loading key...</p>
+          <button onclick="copyIdentity()" class="mt-3 text-xs bg-slate-900 text-white px-4 py-2 rounded-full font-bold shadow-sm active:scale-95 transition">Copy Public Key</button>
         </div>
 
-        <!-- Settings List -->
         <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
-          
           <div class="p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center"><i class="fa-solid fa-eye"></i></div>
@@ -303,40 +303,11 @@
               <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
             </label>
           </div>
-
-          <div class="p-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center"><i class="fa-solid fa-network-wired"></i></div>
-              <div>
-                <h4 class="text-sm font-bold text-slate-800">P2P Mesh Relay</h4>
-                <p class="text-[10px] text-slate-500">Relay messages for others</p>
-              </div>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
-            </label>
-          </div>
-
-          <div class="p-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center"><i class="fa-solid fa-bell"></i></div>
-              <div>
-                <h4 class="text-sm font-bold text-slate-800">Proximity Alerts</h4>
-                <p class="text-[10px] text-slate-500">Notify when entering busy rooms</p>
-              </div>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
-            </label>
-          </div>
         </div>
 
-        <!-- Danger Zone -->
         <div class="bg-rose-50 rounded-[2rem] border border-rose-100 p-5 shadow-sm">
-          <h3 class="text-sm font-bold text-rose-800 mb-1">Danger Zone</h3>
-          <p class="text-[10px] text-rose-600 mb-3">This will delete your local identity, messages, and disconnect you from the mesh.</p>
+          <h3 class="text-sm font-extrabold text-rose-800 mb-1">Danger Zone</h3>
+          <p class="text-[10px] text-rose-600 mb-3 font-medium">This will delete your local identity, messages, and disconnect you from the mesh.</p>
           <button onclick="wipeData()" class="w-full bg-rose-600 text-white font-bold text-xs py-2.5 rounded-xl shadow-md active:scale-95 transition">
             <i class="fa-solid fa-trash-can mr-1"></i> Floss & Wipe Data
           </button>
@@ -344,14 +315,14 @@
       </section>
 
       <!-- ================= PAGE 5: DEBUG CONSOLE ================= -->
-      <section id="page-debug" class="page overflow-hidden p-4 flex-col bg-slate-900 font-mono">
+      <section id="page-debug" class="page overflow-hidden p-4 pb-[90px] flex-col bg-slate-900 font-mono">
         <div class="flex justify-between items-center mb-3">
           <h2 class="text-xs font-bold text-slate-400 tracking-widest uppercase">System Logs</h2>
           <div class="flex gap-2">
-            <button onclick="copyLogs()" class="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-700 transition">
+            <button onclick="copyLogs()" class="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-700 transition active:scale-95">
               <i class="fa-regular fa-copy mr-1"></i> Copy
             </button>
-            <button onclick="clearLogs()" class="text-[10px] bg-rose-900/50 text-rose-400 px-3 py-1.5 rounded-md border border-rose-900 hover:bg-rose-900 transition">
+            <button onclick="clearLogs()" class="text-[10px] bg-rose-900/50 text-rose-400 px-3 py-1.5 rounded-md border border-rose-900 hover:bg-rose-900 transition active:scale-95">
               <i class="fa-solid fa-trash-can mr-1"></i> Clear
             </button>
           </div>
@@ -363,52 +334,52 @@
 
     </main>
 
-    <!-- ================= BOTTOM NAVIGATION (With FAB) ================= -->
-    <nav class="absolute bottom-0 w-full glass border-t border-slate-200 px-2 py-2 pb-5 flex justify-between items-center z-40 rounded-b-[30px] sm:rounded-b-[30px]">
+    <!-- ================= BOTTOM NAVIGATION ================= -->
+    <nav class="absolute bottom-0 w-full glass border-t border-slate-200 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-between items-center z-40 rounded-b-[30px] sm:rounded-b-[30px]">
       
-      <button onclick="switchPage('radar')" id="nav-radar" class="nav-btn w-16 flex flex-col items-center gap-1 text-brand-600">
+      <button onclick="switchPage('radar')" id="nav-radar" class="nav-btn w-16 flex flex-col items-center gap-1 text-brand-600 transition-all duration-300">
         <i class="fa-solid fa-radar text-lg"></i>
         <span class="text-[9px] font-bold">Radar</span>
       </button>
 
-      <button onclick="switchPage('commute')" id="nav-commute" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
+      <button onclick="switchPage('commute')" id="nav-commute" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300">
         <i class="fa-solid fa-bus text-lg"></i>
         <span class="text-[9px] font-bold">Commute</span>
       </button>
 
       <!-- CENTER FLOATING ACTION BUTTON -->
-      <div class="relative -top-5 w-16 flex justify-center">
-        <button onclick="toggleFABModal()" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-brand-500/40 border-4 border-slate-50 transform transition hover:scale-105 active:scale-95">
+      <div class="relative -top-6 w-16 flex justify-center">
+        <button onclick="toggleFABModal()" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,99,235,0.4)] border-4 border-slate-50 transform transition hover:scale-105 active:scale-90">
           <i class="fa-solid fa-plus text-xl"></i>
         </button>
       </div>
 
-      <button onclick="switchPage('feed')" id="nav-feed" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
+      <button onclick="switchPage('feed')" id="nav-feed" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300">
         <i class="fa-solid fa-layer-group text-lg"></i>
         <span class="text-[9px] font-bold">Feed</span>
       </button>
 
-      <button onclick="switchPage('settings')" id="nav-settings" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
+      <button onclick="switchPage('settings')" id="nav-settings" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition-all duration-300">
         <i class="fa-solid fa-gear text-lg"></i>
         <span class="text-[9px] font-bold">Settings</span>
       </button>
     </nav>
 
     <!-- ================= FAB QUICK ACTIONS MODAL ================= -->
-    <div id="fab-modal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-end justify-center p-4 pb-24 fab-modal">
-      <div class="bg-white rounded-[2rem] w-full max-w-sm p-4 shadow-2xl space-y-2">
-        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Quick Actions</h3>
-        
-        <button onclick="closeFABModal(); switchPage('feed'); alert('Post creation UI coming soon!')" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-left transition">
-          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg"><i class="fa-solid fa-pen"></i></div>
+    <div id="fab-modal" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden items-end justify-center p-4 pb-28 fab-modal">
+      <div class="bg-white rounded-[2rem] w-full max-w-sm p-4 shadow-2xl space-y-2 border border-slate-100">
+        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Quick Actions</h3>
+
+        <button onclick="closeFABModal(); switchPage('feed'); alert('Post creation UI coming soon!')" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-left transition active:scale-[0.98]">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-pen"></i></div>
           <div>
             <h4 class="text-sm font-bold text-slate-800">Create Post</h4>
             <p class="text-[10px] text-slate-500">Share an update to the mesh feed</p>
           </div>
         </button>
 
-        <button onclick="closeFABModal(); alert('Broadcasting SOS over mesh!')" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 text-left transition">
-          <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <button onclick="closeFABModal(); alert('Broadcasting SOS over mesh!')" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 text-left transition active:scale-[0.98]">
+          <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-triangle-exclamation"></i></div>
           <div>
             <h4 class="text-sm font-bold text-slate-800">Broadcast Alert</h4>
             <p class="text-[10px] text-slate-500">Send a high-priority warning</p>
@@ -418,14 +389,14 @@
     </div>
 
     <!-- QR Code Modal -->
-    <div id="qr-modal" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-6">
-      <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl relative">
-        <button onclick="closeQRCode()" class="absolute top-4 right-4 w-8 h-8 bg-slate-100 rounded-full text-slate-500 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-        <h3 class="text-lg font-bold text-slate-800 mb-1">Invite Peers</h3>
-        <p class="text-xs text-slate-500 mb-6">Scan this QR code to join the room.</p>
-        <div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-center mb-6 shadow-sm" id="qrcode-container"></div>
-        <button onclick="copyRoomLink()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition">
-          <i class="fa-regular fa-copy mr-2"></i> Copy Link
+    <div id="qr-modal" class="absolute inset-0 bg-slate-900/60 backdrop-blur-md z-50 hidden items-center justify-center p-6">
+      <div class="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl relative border border-slate-100">
+        <button onclick="closeQRCode()" class="absolute top-4 right-4 w-8 h-8 bg-slate-100 rounded-full text-slate-500 flex items-center justify-center hover:bg-slate-200 active:scale-90 transition"><i class="fa-solid fa-xmark"></i></button>
+        <h3 class="text-lg font-extrabold text-slate-800 mb-1">Invite Peers</h3>
+        <p class="text-[11px] text-slate-500 mb-6">Scan this QR code to join the room.</p>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 flex justify-center mb-6 shadow-sm" id="qrcode-container"></div>
+        <button onclick="copyRoomLink()" class="w-full bg-brand-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition flex items-center justify-center gap-2">
+          <i class="fa-regular fa-copy"></i> Copy Link
         </button>
       </div>
     </div>
@@ -445,6 +416,7 @@
       if (modal.classList.contains('hidden')) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
+        // slight delay to allow display:flex to apply before transform
         setTimeout(() => modal.classList.add('open'), 10);
       } else {
         closeFABModal();
