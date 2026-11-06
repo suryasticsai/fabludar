@@ -1,21 +1,17 @@
 import { useStore } from './lib/store.js';
 import { createEnvelope } from './lib/protocol.js';
 
-// We grab identity and room from the global scope established in bluapp.js
-// (In a full bundler, we would import them directly, but this works for ESM)
-
 window.castVote = function(category, value) {
-  // Access global identity and mesh variables defined in bluapp.js
   const identity = window.AppIdentity; 
   const room = window.AppRoom;
+  const mesh = window.AppMesh;
   
-  if (!identity || !room) return;
+  if (!identity || !room || !mesh) return;
 
   const env = createEnvelope('vote', room, identity.pubKey, identity.privKey, { category, value });
   if(env) {
-    // Note: In a production app, we'd export mesh from bluapp.js. 
-    // For simplicity here, we assume the user just wants the UI to work.
-    console.log(`Vote cast locally: ${category} = ${value}`);
+    mesh.seenMessageIds.add(env.id);
+    mesh.sendRaw(env);
     
     useStore.getState().addVote(category, value);
     updateVotesUI();
