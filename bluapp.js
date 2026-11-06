@@ -49,7 +49,7 @@ if(settingsPubKey) settingsPubKey.innerText = identity.pubKey;
 const currentRoom = new URLSearchParams(window.location.search).get('room') || 'global-mesh';
 document.getElementById('room-name-display').innerText = currentRoom;
 
-// Initialize the P2P Mesh
+// Initialize the PeerJS Mesh
 const mesh = initMesh(currentRoom, 
   (env) => {
     if (env.type === 'chat') {
@@ -68,14 +68,14 @@ const mesh = initMesh(currentRoom,
     }
   },
   (pid) => {
-    console.log(`Peer connected: ${pid.substring(0,5)}`);
+    console.log(`Peer connected: ${pid.substring(0,9)}`);
     const p = useStore.getState().peers; 
     p.add(pid); 
     useStore.getState().setPeers(p); 
     renderUI();
   },
   (pid) => {
-    console.log(`Peer disconnected: ${pid.substring(0,5)}`);
+    console.log(`Peer disconnected: ${pid.substring(0,9)}`);
     const p = useStore.getState().peers; 
     p.delete(pid); 
     useStore.getState().setPeers(p); 
@@ -83,7 +83,7 @@ const mesh = initMesh(currentRoom,
   }
 );
 
-// Expose globally for commuter.js and creator.js
+// Make variables globally accessible for commuter.js and creator.js
 window.AppMesh = mesh;
 window.AppIdentity = identity;
 window.AppRoom = currentRoom;
@@ -156,7 +156,7 @@ function renderUI() {
       dot.innerHTML = `
         <div class="relative flex h-6 w-6 items-center justify-center">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <div class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border-2 border-white shadow-sm items-center justify-center text-[8px] text-white font-bold" title="Peer ${pid.substring(0,5)}">
+          <div class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border-2 border-white shadow-sm items-center justify-center text-[8px] text-white font-bold" title="Peer ${pid.substring(0,9)}">
             <i class="fa-solid fa-user"></i>
           </div>
         </div>
