@@ -297,6 +297,47 @@ function renderMessage(box, text, sender, isSelf) {
   box.appendChild(div); box.scrollTop = box.scrollHeight;
 }
 
+window.forceRefresh = function() {
+  console.log("Force refreshing connection and GPS...");
+  
+  // 1. Force a GPS Update
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      
+      // Update self marker
+      if (window.selfMarker) {
+        window.selfMarker.setLatLng([myLat, myLng]);
+      }
+      
+      // If on the map, recenter to the new location
+      if (map) {
+        map.flyTo([myLat, myLng], 16, { animate: true, duration: 1 });
+        map.invalidateSize(); // Fixes any rendering glitches if the map was hidden
+      }
+    }, (err) => {
+      console.warn("Refresh GPS failed:", err);
+      alert("Could not get GPS. Please check your location settings.");
+    }, { enableHighAccuracy: true });
+  }
+
+  // 2. Re-render the Peer List (in case UI missed an update)
+  if (typeof updatePeerList === 'function') {
+    updatePeerList();
+  }
+
+  // 3. Show a quick visual confirmation (optional)
+  const btn = event.currentTarget;
+  if (btn) {
+    const icon = btn.querySelector('i');
+    if (icon) {
+      icon.classList.add('animate-spin');
+      setTimeout(() => icon.classList.remove('animate-spin'), 1000);
+    }
+  }
+};
+
 // Debug Console
 const originalLog = console.log;
 console.log = (...args) => { originalLog(...args); const el = document.getElementById('console-output'); if(el) el.innerHTML += `<div class="mb-1 text-emerald-400">${args.join(' ')}</div>`; };
