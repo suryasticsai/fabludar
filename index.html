@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>faBludar - Bluetooth Commuter Community</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',  // blue-50
+              100: '#dbeafe', // blue-100
+              400: '#60a5fa', // blue-400
+              500: '#3b82f6', // blue-500
+              600: '#2563eb', // blue-600
+              700: '#1d4ed8', // blue-700
+            },
+            deepbg: '#f0f4f8',
+            cardbg: '#ffffff',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom CSS Animations & Clean Utilities */
+    body {
+      background-color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+    
+    /* Radar sweep animation */
+    @keyframes radar-sweep {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .radar-sweeper {
+      animation: radar-sweep 4s linear infinite;
+      transform-origin: center center;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+
+    .pulse-node {
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    /* Custom Hide Scrollbar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-4">
+
+  <!-- Mobile Phone Container Frame -->
+  <div class="relative w-full max-w-md h-[100vh] md:h-[880px] bg-deepbg md:rounded-[44px] shadow-2xl overflow-hidden flex flex-col border-0 md:border-[8px] border-slate-800">
+    
+    <!-- Phone Top Speaker & Sensor Notch Bar (Desktop view visual detail) -->
+    <div class="hidden md:flex justify-center pt-2 pb-1 bg-slate-900 text-white rounded-b-xl z-50">
+      <div class="w-20 h-4 bg-black rounded-full flex items-center justify-center">
+        <div class="w-3 h-3 bg-slate-800 rounded-full mr-2"></div>
+        <div class="w-8 h-1.5 bg-slate-800 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- App Header -->
+    <header class="bg-white/80 backdrop-blur-md px-5 py-3 border-b border-slate-100 flex items-center justify-between z-30 sticky top-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-500/30 font-bold">
+          <i class="fa-solid fa-tower-broadcast"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-800 leading-none">faBludar</h1>
+          <span class="text-[10px] font-medium text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-full inline-block mt-0.5">
+            <i class="fa-bluetooth fa-brands mr-1"></i>BLE Mesh Active
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleBTStatus()" id="bt-toggle-btn" class="w-8 h-8 rounded-full bg-slate-100 text-brand-600 flex items-center justify-center hover:bg-brand-50 transition" title="Toggle Bluetooth status">
+          <i class="fa-brands fa-bluetooth-b text-sm"></i>
+        </button>
+        <button onclick="switchTab('page-settings')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-full h-full rounded-full object-cover">
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN SCROLLABLE CONTENT BODY -->
+    <main class="flex-1 overflow-y-auto no-scrollbar pb-24 relative" id="main-content">
+
+      <!-- ================= PAGE 1: RADAR & NEARBY CHAT ================= -->
+      <section id="page-radar" class="p-4 space-y-4">
+        <!-- Status Banner -->
+        <div class="bg-brand-50 border border-brand-100 rounded-2xl p-3 flex items-center justify-between text-xs text-brand-800">
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+            </span>
+            <span class="font-medium">Bus #814 • 14 Nearby Commuters</span>
+          </div>
+          <span class="text-[11px] font-semibold bg-white px-2 py-1 rounded-lg border border-brand-200 text-brand-700">Offline P2P</span>
+        </div>
+
+        <!-- Interactive Radar Scanner Widget -->
+        <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm text-center relative overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Nearby Radar</span>
+            <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full" id="radar-count-badge">8 Bluetooth Nodes</span>
+          </div>
+
+          <!-- Radar Circle Graphic -->
+          <div class="relative w-64 h-64 mx-auto my-2 rounded-full border border-brand-100 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner">
+            <!-- Concentric Circles -->
+            <div class="absolute w-48 h-48 rounded-full border border-brand-200/50"></div>
+            <div class="absolute w-32 h-32 rounded-full border border-brand-200/60"></div>
+            <div class="absolute w-16 h-16 rounded-full border border-brand-300/80"></div>
+
+            <!-- Radar Sweeper Sweep -->
+            <div class="absolute w-full h-full radar-sweeper pointer-events-none">
+              <div class="w-1/2 h-1/2 bg-gradient-to-br from-brand-400/25 to-transparent origin-bottom-right rounded-tl-full"></div>
+            </div>
+
+            <!-- Center Self Dot -->
+            <div class="w-4 h-4 rounded-full bg-brand-600 border-2 border-white shadow-md z-10 flex items-center justify-center" title="You">
+              <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+            </div>
+
+            <!-- Clickable Radar User Dots -->
+            <!-- User 1 -->
+            <button onclick="openChatModal('Alex (Seat 12B)', 'Looking for a quiet commute segment today!')" 
+                    class="absolute top-12 left-16 group z-20" title="Alex">
+              <span class="relative flex h-5 w-5">
+                <span class="pulse-node absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-5 w-5 bg-brand-500 border border-white text-[9px] text-white font-bold items-center justify-center shadow">A</span>
+              </span>
+            </button>
+
+            <!-- User 2 -->
+            <button onclick="openChatModal('Sarah M.', 'Anyone dynamic hot-spotting for Spotify?')" 
+                    class="absolute bottom-12 right-16 group z-20" title="Sarah">
+              <span class="relative flex h-5 w-5">
+                <span class="pulse-node absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-5 w-5 bg-emerald-500 border border-white text-[9px] text-white font-bold items-center justify-center shadow">S</span>
+              </span>
+            </button>
+
+            <!-- User 3 -->
+            <button onclick="openChatModal('Dave Commuter', 'Traffic slowdown ahead near Central Bridge.')" 
+                    class="absolute top-20 right-10 group z-20" title="Dave">
+              <span class="relative flex h-5 w-5">
+                <span class="pulse-node absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-5 w-5 bg-amber-500 border border-white text-[9px] text-white font-bold items-center justify-center shadow">D</span>
+              </span>
+            </button>
+
+            <!-- User 4 -->
+            <button onclick="openChatModal('Priya (Train Car 4)', 'Card games playing in rear lounge!')" 
+                    class="absolute bottom-16 left-12 group z-20" title="Priya">
+              <span class="relative flex h-5 w-5">
+                <span class="pulse-node absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-5 w-5 bg-indigo-500 border border-white text-[9px] text-white font-bold items-center justify-center shadow">P</span>
+              </span>
+            </button>
+          </div>
+
+          <p class="text-xs text-slate-500 mt-2">Tap any dot on the radar to initiate direct Bluetooth P2P chat.</p>
+        </div>
+
+        <!-- Available Bluetooth Local Rooms Section -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Nearby Bluetooth Rooms</h2>
+            <span class="text-xs text-brand-600 font-semibold cursor-pointer hover:underline" onclick="openCreateRoomModal()">+ Create Room</span>
+          </div>
+
+          <div class="space-y-2.5">
+            <!-- Room 1 -->
+            <div onclick="openChatModal('Bus #814 Public Chat', 'Official passenger room for Bus 814', true)" 
+                 class="bg-white p-3.5 rounded-2xl border border-slate-100 hover:border-brand-300 transition shadow-sm cursor-pointer flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-base">
+                  <i class="fa-solid fa-bus"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800">Bus #814 Lounge</h3>
+                  <p class="text-xs text-slate-500">12 commuters active • 30m range</p>
+                </div>
+              </div>
+              <span class="bg-brand-50 text-brand-700 text-xs px-2.5 py-1 rounded-full font-medium">Join</span>
+            </div>
+
+            <!-- Room 2 -->
+            <div onclick="openChatModal('Quiet Car #3', 'Silent work & read environment', true)" 
+                 class="bg-white p-3.5 rounded-2xl border border-slate-100 hover:border-brand-300 transition shadow-sm cursor-pointer flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-base">
+                  <i class="fa-solid fa-book-open"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800">Quiet Study & Work</h3>
+                  <p class="text-xs text-slate-500">6 commuters active • Silent mode</p>
+                </div>
+              </div>
+              <span class="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-medium">Join</span>
+            </div>
+
+            <!-- Room 3 -->
+            <div onclick="openChatModal('Daily Traffic Spotters', 'Realtime local highway updates', true)" 
+                 class="bg-white p-3.5 rounded-2xl border border-slate-100 hover:border-brand-300 transition shadow-sm cursor-pointer flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-base">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-slate-800">Traffic Alert Mesh</h3>
+                  <p class="text-xs text-slate-500">8 commuters • Live warnings</p>
+                </div>
+              </div>
+              <span class="bg-brand-50 text-brand-700 text-xs px-2.5 py-1 rounded-full font-medium">Join</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= PAGE 2: BUS & COMMUTE STATUS ================= -->
+      <section id="page-bus" class="p-4 space-y-4 hidden">
+        <!-- Search Bus/Train Header -->
+        <div class="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass text-slate-400 ml-2"></i>
+          <input type="text" placeholder="Search route, bus number or train..." value="Bus #814 - Express Line" 
+                 class="w-full text-sm outline-none bg-transparent font-medium text-slate-700 placeholder-slate-400">
+          <span class="bg-brand-50 text-brand-600 text-xs font-semibold px-2 py-1 rounded-lg">Active</span>
+        </div>
+
+        <!-- Live Route Summary Card -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-slate-800">Bus #814 Express</h2>
+                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">On Time</span>
+              </div>
+              <p class="text-xs text-slate-500">Downtown Transit Center ➔ North Tech Park</p>
+            </div>
+            <div class="text-right">
+              <span class="text-xl font-extrabold text-brand-600">4 min</span>
+              <p class="text-[10px] text-slate-400">ETA Next Stop</p>
+            </div>
+          </div>
+
+          <!-- Capacity Bar -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="text-slate-600"><i class="fa-solid fa-chair text-brand-500 mr-1"></i> Seat Occupancy</span>
+              <span class="text-amber-600">70% Full (Moderate)</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div class="bg-amber-400 h-full rounded-full" style="width: 70%"></div>
+            </div>
+          </div>
+
+          <!-- Simulated Live Route Map Representation -->
+          <div class="relative w-full h-36 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/60 p-3 flex flex-col justify-between">
+            <!-- Simulated Map Background grid lines -->
+            <div class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:12px_12px] opacity-50"></div>
+            
+            <!-- Map Route Line -->
+            <svg class="absolute inset-0 w-full h-full stroke-brand-500" stroke-width="4" fill="none">
+              <path d="M 20 90 Q 140 20, 260 80 T 380 40" stroke-dasharray="6,6" class="stroke-brand-300"/>
+              <path d="M 20 90 Q 140 20, 180 50" class="stroke-brand-600"/>
+            </svg>
+
+            <!-- Map Pin: Current Location -->
+            <div class="absolute top-[42px] left-[170px] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+              <div class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs shadow-lg animate-bounce">
+                <i class="fa-solid fa-bus"></i>
+              </div>
+              <span class="bg-slate-900/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur mt-0.5 font-medium">Now</span>
+            </div>
+
+            <!-- Route Stop Points -->
+            <div class="relative z-10 flex justify-between items-end h-full pt-4">
+              <div class="bg-white/90 backdrop-blur p-1.5 rounded-lg text-[10px] shadow text-slate-700">
+                <strong>Passed:</strong> Central Ave
+              </div>
+              <div class="bg-white/90 backdrop-blur p-1.5 rounded-lg text-[10px] shadow text-slate-700 border border-brand-400">
+                <strong>Next:</strong> Tech Hub (4m)
+              </div>
+              <div class="bg-white/90 backdrop-blur p-1.5 rounded-lg text-[10px] shadow text-slate-500">
+                Terminal (18m)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seat Map Interactive Preview -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-slate-800">Seat Availability Layout</h3>
+            <div class="flex items-center gap-3 text-[10px] font-medium text-slate-500">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-brand-500 inline-block"></span> Free</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-slate-300 inline-block"></span> Occupied</span>
+            </div>
+          </div>
+
+          <!-- Seat Grid (Bus Floorplan) -->
+          <div class="grid grid-cols-5 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 max-w-xs mx-auto">
+            <!-- Left Seats Column -->
+            <div class="grid grid-cols-2 gap-1.5">
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">A1</div>
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">A2</div>
+              <div class="w-7 h-7 rounded-md bg-brand-500 text-white text-[10px] flex items-center justify-center font-bold shadow-sm">B1</div>
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">B2</div>
+              <div class="w-7 h-7 rounded-md bg-brand-500 text-white text-[10px] flex items-center justify-center font-bold shadow-sm">C1</div>
+              <div class="w-7 h-7 rounded-md bg-brand-500 text-white text-[10px] flex items-center justify-center font-bold shadow-sm">C2</div>
+            </div>
+
+            <!-- Aisle -->
+            <div class="flex items-center justify-center text-[10px] text-slate-400 font-mono rotate-90">AISLE</div>
+
+            <!-- Right Seats Column -->
+            <div class="grid grid-cols-2 gap-1.5">
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">A3</div>
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">A4</div>
+              <div class="w-7 h-7 rounded-md bg-brand-500 text-white text-[10px] flex items-center justify-center font-bold shadow-sm">B3</div>
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">B4</div>
+              <div class="w-7 h-7 rounded-md bg-brand-500 text-white text-[10px] flex items-center justify-center font-bold shadow-sm">C3</div>
+              <div class="w-7 h-7 rounded-md bg-slate-300 text-[10px] flex items-center justify-center text-slate-600 font-bold">C4</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Route Commuter Chat Room -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+          <h3 class="text-sm font-bold text-slate-800">Bus #814 Live Commuter Stream</h3>
+
+          <div class="space-y-2 text-xs">
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-700">Marcus T.</span>
+                <span class="text-[10px] text-slate-400">2 min ago</span>
+              </div>
+              <p class="text-slate-600">AC is working great on the upper deck today. Plenty of free seats in row C!</p>
+            </div>
+
+            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-700">Driver Announce</span>
+                <span class="text-[10px] text-brand-600 font-semibold">Official</span>
+              </div>
+              <p class="text-slate-600">Minor 3-minute delay at 5th Avenue due to road maintenance.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= PAGE 3: SOCIAL MEDIA FEED ================= -->
+      <section id="page-feed" class="p-4 space-y-4 hidden">
+        <!-- Feed Top Filters -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <button class="bg-brand-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm whitespace-nowrap">All Insights</button>
+          <button class="bg-white text-slate-600 text-xs font-medium px-3 py-1.5 rounded-full border border-slate-200 whitespace-nowrap hover:bg-slate-50">#TrafficAlerts</button>
+          <button class="bg-white text-slate-600 text-xs font-medium px-3 py-1.5 rounded-full border border-slate-200 whitespace-nowrap hover:bg-slate-50">#CommuteBeats</button>
+          <button class="bg-white text-slate-600 text-xs font-medium px-3 py-1.5 rounded-full border border-slate-200 whitespace-nowrap hover:bg-slate-50">#BusTips</button>
+        </div>
+
+        <!-- Card 1: Traffic Insight -->
+        <article class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80" class="w-7 h-7 rounded-full object-cover" alt="User">
+              <div>
+                <h4 class="text-xs font-bold text-slate-800">David Chen</h4>
+                <p class="text-[10px] text-slate-400">Bus #814 Rider • 15m ago</p>
+              </div>
+            </div>
+            <span class="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">#TrafficAlert</span>
+          </div>
+
+          <h3 class="text-sm font-bold text-slate-800 leading-snug">Construction on 4th Street causes 8-min delays for all westbound buses</h3>
+
+          <p class="text-xs text-slate-600 leading-relaxed">
+            If you are heading towards Tech Park, consider transferring to Metro Line 1 at Central Station. It saves around 12 minutes!
+          </p>
+
+          <!-- Interaction Bar -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-slate-500 text-xs">
+            <div class="flex items-center gap-4">
+              <button onclick="toggleLike(this)" class="flex items-center gap-1 hover:text-brand-600 transition">
+                <i class="fa-regular fa-heart"></i> <span class="like-count">24</span>
+              </button>
+              <button class="flex items-center gap-1 hover:text-brand-600 transition">
+                <i class="fa-regular fa-comment"></i> 7
+              </button>
+            </div>
+            <button onclick="toggleBookmark(this)" class="hover:text-brand-600 transition">
+              <i class="fa-regular fa-bookmark"></i>
+            </button>
+          </div>
+        </article>
+
+        <!-- Card 2: Music / Media Sharing -->
+        <article class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80" class="w-7 h-7 rounded-full object-cover" alt="User">
+              <div>
+                <h4 class="text-xs font-bold text-slate-800">Elena Rostova</h4>
+                <p class="text-[10px] text-slate-400">Metro Commuter • 1h ago</p>
+              </div>
+            </div>
+            <span class="bg-brand-50 text-brand-700 text-[10px] font-bold px-2 py-0.5 rounded-full">#CommuteBeats</span>
+          </div>
+
+          <h3 class="text-sm font-bold text-slate-800 leading-snug">Chill Lofi Mix for Morning Commutes 🎧</h3>
+
+          <!-- Embedded Media Audio Card Mockup -->
+          <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-brand-500 text-white flex items-center justify-center font-bold text-lg shadow-md">
+              <i class="fa-solid fa-music"></i>
+            </div>
+            <div class="flex-1 overflow-hidden">
+              <h5 class="text-xs font-bold text-slate-800 truncate">Morning Chill Beats Vol. 4</h5>
+              <p class="text-[10px] text-slate-500">Shared via Bluetooth Local Sync</p>
+              <!-- Progress Bar -->
+              <div class="w-full bg-slate-200 h-1 rounded-full mt-1.5 overflow-hidden">
+                <div class="bg-brand-500 h-full w-2/5"></div>
+              </div>
+            </div>
+            <button class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs shadow hover:bg-brand-600">
+              <i class="fa-solid fa-play ml-0.5"></i>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-slate-500 text-xs">
+            <div class="flex items-center gap-4">
+              <button onclick="toggleLike(this)" class="flex items-center gap-1 hover:text-brand-600 transition">
+                <i class="fa-regular fa-heart"></i> <span class="like-count">58</span>
+              </button>
+              <button class="flex items-center gap-1 hover:text-brand-600 transition">
+                <i class="fa-regular fa-comment"></i> 14
+              </button>
+            </div>
+            <button onclick="toggleBookmark(this)" class="hover:text-brand-600 transition">
+              <i class="fa-regular fa-bookmark"></i>
+            </button>
+          </div>
+        </article>
+      </section>
+
+
+      <!-- ================= PAGE 4: SETTINGS & PROFILE ================= -->
+      <section id="page-settings" class="p-4 space-y-4 hidden">
+        <!-- Profile Header -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm text-center space-y-2">
+          <div class="relative w-20 h-20 mx-auto">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Profile" class="w-full h-full rounded-full object-cover border-2 border-brand-500 p-0.5">
+            <span class="absolute bottom-0 right-0 w-5 h-5 bg-brand-500 border-2 border-white rounded-full flex items-center justify-center text-white text-[10px]" title="Bluetooth Active">
+              <i class="fa-solid fa-bluetooth-b"></i>
+            </span>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-800">Alex Morgan</h2>
+            <p class="text-xs text-slate-500">Daily Bus #814 & Train Line 2 Commuter</p>
+          </div>
+          <div class="flex justify-center gap-2 pt-1">
+            <span class="bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1 rounded-full">Level 4 Commuter</span>
+            <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">142 Mesh Chats</span>
+          </div>
+        </div>
+
+        <!-- Bluetooth Mesh Settings -->
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
+          <div class="p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+                <i class="fa-solid fa-eye"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">Bluetooth Visibility</h4>
+                <p class="text-xs text-slate-500">Allow nearby commuters to see your radar dot</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+            </label>
+          </div>
+
+          <div class="p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+                <i class="fa-solid fa-network-wired"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">P2P Mesh Relay</h4>
+                <p class="text-xs text-slate-500">Relay messages offline across commuters</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+            </label>
+          </div>
+
+          <div class="p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-slate-800">Proximity Alerts</h4>
+                <p class="text-xs text-slate-500">Notify when entering busy bus rooms</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+            </label>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ================= FLOATING ACTION BUTTON & DOCK NAV ================= -->
+    <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-2 z-40">
+      <div class="flex items-center justify-between relative max-w-xs mx-auto">
+        
+        <!-- Tab 1: Radar -->
+        <button onclick="switchTab('page-radar')" id="nav-page-radar" class="nav-btn flex flex-col items-center gap-1 text-brand-600 transition">
+          <i class="fa-solid fa-radar text-lg"></i>
+          <span class="text-[10px] font-semibold">Radar</span>
+        </button>
+
+        <!-- Tab 2: Bus Status -->
+        <button onclick="switchTab('page-bus')" id="nav-page-bus" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition mr-6">
+          <i class="fa-solid fa-bus text-lg"></i>
+          <span class="text-[10px] font-semibold">Commute</span>
+        </button>
+
+        <!-- CENTER FLOATING ACTION BUTTON (FAB) -->
+        <div class="absolute -top-6 left-1/2 -translate-x-1/2">
+          <button onclick="toggleFABOverlay()" class="w-13 h-13 w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center text-xl shadow-lg shadow-brand-500/40 hover:bg-brand-700 hover:scale-105 transition transform active:scale-95 border-4 border-white">
+            <i class="fa-solid fa-plus" id="fab-icon"></i>
+          </button>
+        </div>
+
+        <!-- Tab 3: Social Feed -->
+        <button onclick="switchTab('page-feed')" id="nav-page-feed" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition ml-6">
+          <i class="fa-solid fa-layer-group text-lg"></i>
+          <span class="text-[10px] font-semibold">Feed</span>
+        </button>
+
+        <!-- Tab 4: Settings -->
+        <button onclick="switchTab('page-settings')" id="nav-page-settings" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-brand-600 transition">
+          <i class="fa-solid fa-user-gear text-lg"></i>
+          <span class="text-[10px] font-semibold">Settings</span>
+        </button>
+
+      </div>
+    </nav>
+
+    <!-- ================= OVERLAYS & MODALS ================= -->
+
+    <!-- FAB Quick Actions Menu Overlay -->
+    <div id="fab-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden flex-col justify-end p-4 pb-24 space-y-2">
+      <div class="bg-white rounded-3xl p-4 shadow-xl space-y-2 transform transition-all duration-200">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">Commuter Actions</h4>
+        
+        <button onclick="openCreatePostModal(); toggleFABOverlay();" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-left transition">
+          <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <h5 class="text-sm font-bold text-slate-800">Create Commuter Post</h5>
+            <p class="text-xs text-slate-500">Share tips, audio, or traffic alerts</p>
+          </div>
+        </button>
+
+        <button onclick="openCreateRoomModal(); toggleFABOverlay();" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-left transition">
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-tower-broadcast"></i>
+          </div>
+          <div>
+            <h5 class="text-sm font-bold text-slate-800">Host Bluetooth Room</h5>
+            <p class="text-xs text-slate-500">Start local P2P chat room for your bus</p>
+          </div>
+        </button>
+
+        <button onclick="triggerBroadcastAlert(); toggleFABOverlay();" class="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-amber-50 text-left transition border border-amber-100">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <h5 class="text-sm font-bold text-amber-900">Broadcast Traffic Warning</h5>
+            <p class="text-xs text-amber-700">Send high-priority alert to nearby vehicles</p>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bluetooth Direct Chat Modal -->
+    <div id="chat-modal" class="absolute inset-0 bg-white z-50 hidden flex-col">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-3">
+          <button onclick="closeChatModal()" class="w-8 h-8 rounded-full bg-white text-slate-600 flex items-center justify-center shadow-sm">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div>
+            <h3 class="text-sm font-bold text-slate-800" id="chat-modal-title">Commuter Chat</h3>
+            <span class="text-[10px] text-brand-600 font-medium flex items-center gap-1">
+              <i class="fa-solid fa-circle text-[6px]"></i> Direct BLE Connected
+            </span>
+          </div>
+        </div>
+        <span class="text-xs text-slate-400 font-mono">P2P Encrypted</span>
+      </div>
+
+      <!-- Chat Messages Scroll Container -->
+      <div class="flex-1 p-4 overflow-y-auto no-scrollbar space-y-3" id="chat-messages-box">
+        <div class="text-center my-2">
+          <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full" id="chat-subtitle-info">Connected via Bluetooth 5.2</span>
+        </div>
+
+        <!-- System Message -->
+        <div class="bg-brand-50 text-brand-800 text-xs p-2.5 rounded-2xl border border-brand-100 text-center">
+          You are now chatting over local offline Bluetooth mesh. No cellular network required.
+        </div>
+
+        <!-- Message Left -->
+        <div class="flex items-end gap-2 max-w-[80%]">
+          <div class="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-[10px] font-bold">C</div>
+          <div class="bg-slate-100 p-3 rounded-2xl rounded-bl-none text-xs text-slate-700">
+            Hey there! Is this bus usually on time around 8:15 AM?
+          </div>
+        </div>
+
+        <!-- Message Right (Self) -->
+        <div class="flex items-end gap-2 max-w-[80%] ml-auto justify-end">
+          <div class="bg-brand-600 p-3 rounded-2xl rounded-br-none text-xs text-white">
+            Yes, it's pretty reliable! Usually delays are less than 5 minutes.
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input Field -->
+      <div class="p-3 border-t border-slate-100 bg-white flex items-center gap-2">
+        <input type="text" id="chat-input-field" placeholder="Type offline message..." class="flex-1 bg-slate-100 text-xs rounded-full px-4 py-2.5 outline-none font-medium focus:ring-1 focus:ring-brand-500">
+        <button onclick="sendChatMessage()" class="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs shadow hover:bg-brand-700 transition">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript Controls & Logic -->
+  <script>
+    // Tab Navigation Switcher
+    function switchTab(pageId) {
+      // Hide all pages
+      ['page-radar', 'page-bus', 'page-feed', 'page-settings'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+
+      // Reset Nav Button Styles
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('text-brand-600');
+        btn.classList.add('text-slate-400');
+      });
+
+      // Show selected page
+      document.getElementById(pageId).classList.remove('hidden');
+
+      // Highlight Active Nav Button
+      const activeBtn = document.getElementById('nav-' + pageId);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-400');
+        activeBtn.classList.add('text-brand-600');
+      }
+    }
+
+    // Toggle Floating Action Button Overlay
+    function toggleFABOverlay() {
+      const overlay = document.getElementById('fab-overlay');
+      const icon = document.getElementById('fab-icon');
+
+      if (overlay.classList.contains('hidden')) {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        icon.classList.remove('fa-plus');
+        icon.classList.add('fa-xmark');
+      } else {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        icon.classList.remove('fa-xmark');
+        icon.classList.add('fa-plus');
+      }
+    }
+
+    // Open Chat Modal
+    function openChatModal(name, subtitle = '', isRoom = false) {
+      document.getElementById('chat-modal-title').innerText = name;
+      document.getElementById('chat-subtitle-info').innerText = subtitle || (isRoom ? "Bluetooth Room" : "Bluetooth Direct Channel");
+      document.getElementById('chat-modal').classList.remove('hidden');
+      document.getElementById('chat-modal').classList.add('flex');
+    }
+
+    // Close Chat Modal
+    function closeChatModal() {
+      document.getElementById('chat-modal').classList.add('hidden');
+      document.getElementById('chat-modal').classList.remove('flex');
+    }
+
+    // Send Chat Message Mock
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input-field');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const messagesBox = document.getElementById('chat-messages-box');
+      const msgElem = document.createElement('div');
+      msgElem.className = "flex items-end gap-2 max-w-[80%] ml-auto justify-end";
+      msgElem.innerHTML = `<div class="bg-brand-600 p-3 rounded-2xl rounded-br-none text-xs text-white">${text}</div>`;
+      
+      messagesBox.appendChild(msgElem);
+      input.value = '';
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    // Like Button Interaction
+    function toggleLike(btn) {
+      const icon = btn.querySelector('i');
+      const countSpan = btn.querySelector('.like-count');
+      let count = parseInt(countSpan.innerText);
+
+      if (icon.classList.contains('fa-regular')) {
+        icon.classList.remove('fa-regular');
+        icon.classList.add('fa-solid', 'text-brand-500');
+        countSpan.innerText = count + 1;
+      } else {
+        icon.classList.remove('fa-solid', 'text-brand-500');
+        icon.classList.add('fa-regular');
+        countSpan.innerText = count - 1;
+      }
+    }
+
+    // Bookmark Interaction
+    function toggleBookmark(btn) {
+      const icon = btn.querySelector('i');
+      if (icon.classList.contains('fa-regular')) {
+        icon.classList.remove('fa-regular');
+        icon.classList.add('fa-solid', 'text-brand-600');
+      } else {
+        icon.classList.remove('fa-solid', 'text-brand-600');
+        icon.classList.add('fa-regular');
+      }
+    }
+
+    // Bluetooth Status Banner Toggle Mock
+    function toggleBTStatus() {
+      const btn = document.getElementById('bt-toggle-btn');
+      if (btn.classList.contains('text-brand-600')) {
+        btn.classList.remove('text-brand-600', 'bg-slate-100');
+        btn.classList.add('text-slate-400', 'bg-slate-200');
+      } else {
+        btn.classList.remove('text-slate-400', 'bg-slate-200');
+        btn.classList.add('text-brand-600', 'bg-slate-100');
+      }
+    }
+
+    // Quick Action Trigger Mocks
+    function triggerBroadcastAlert() {
+      openChatModal('Traffic Warning Broadcast', 'High priority alert broadcasted over mesh', true);
+    }
+
+    function openCreateRoomModal() {
+      openChatModal('New Bluetooth Room', 'Room created for your current transit vehicle', true);
+    }
+
+    function openCreatePostModal() {
+      switchTab('page-feed');
+    }
+  </script>
+</body>
+</html>
