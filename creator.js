@@ -4,17 +4,59 @@ let octokit = null;
 let autosaveTimer = null;
 let isSyncing = false;
 
-// Global backup object to hold everything before syncing
-window.AppBackupData = {
-  messages: [],
-  notes: [],
-  room: "Unknown",
-  identity: { pubKey: "", privKey: "" }
+// Autosave Engine
+window.triggerAutosave = function() {
+  if (localStorage.getItem('fabludar_autosave_enabled') !== 'true') return;
+  if (isSyncing) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(syncToGist, 10000); // Batch changes for 10 seconds
 };
 
-// ==========================================
-// 1. GITHUB OCTOKIT SETUP
-// ==========================================
+async function syncToGist() {
+  if (!initOctokit()) return;
+  isSyncing = true;
+  
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) statusEl.innerText = "Syncing...";
+
+  const files = {
+    "messages.json": { content: JSON.stringify(window.AppBackupData.messages, null, 2) },
+    "notes.json": { content: JSON.stringify(window.AppBackupData.notes, null, 2) },
+    "identity.json": { content: JSON.stringify(window.AppBackupData.identity, null, 2) },
+    "room_info.json": { content: JSON.stringify({ room: window.AppBackupData.room, lastUpdated: new Date().toISOString() }, null, 2) }
+  };
+
+  const existingGistId = localStorage.getItem('fabludar_master_gist_id');
+
+  try {
+    if (existingGistId) {
+      await octokit.gists.update({
+        gist_id: existingGistId,
+        description: "faBludar Mesh Autosave Data",
+        files: files
+      });
+    } else {
+      const response = await octokit.gists.create({
+        description: "faBludar Mesh Autosave Data",
+        public: false,
+        files: files
+      });
+      localStorage.setItem('fabludar_master_gist_id', response.data.id);
+    }
+    
+    if (statusEl) {
+      statusEl.innerText = "All changes saved";
+      setTimeout(() => { statusEl.innerText = ""; }, 3000);
+    }
+  } catch (error) {
+    console.error("Autosave Failed:", error);
+    if (statusEl) statusEl.innerText = "Sync failed";
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// GitHub Setup
 function initOctokit() {
   const token = localStorage.getItem('fabludar_gh_token');
   if (token) {
@@ -42,70 +84,7 @@ window.toggleAutosave = function(isEnabled) {
   }
 };
 
-// ==========================================
-// 2. AUTOSAVE ENGINE (Debounced)
-// ==========================================
-window.triggerAutosave = function() {
-  if (localStorage.getItem('fabludar_autosave_enabled') !== 'true') return;
-  if (isSyncing) return;
-
-  // Clear existing timer and start a new 10-second countdown
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(syncToGist, 10000); 
-};
-
-async function syncToGist() {
-  if (!initOctokit()) return;
-  isSyncing = true;
-  
-  // Update UI to show syncing (optional)
-  const statusEl = document.getElementById('sync-status');
-  if (statusEl) statusEl.innerText = "Syncing...";
-
-  const files = {
-    "messages.json": { content: JSON.stringify(window.AppBackupData.messages, null, 2) },
-    "notes.json": { content: JSON.stringify(window.AppBackupData.notes, null, 2) },
-    "identity.json": { content: JSON.stringify(window.AppBackupData.identity, null, 2) },
-    "room_info.json": { content: JSON.stringify({ room: window.AppBackupData.room, lastUpdated: new Date().toISOString() }, null, 2) }
-  };
-
-  const existingGistId = localStorage.getItem('fabludar_master_gist_id');
-
-  try {
-    if (existingGistId) {
-      // Update existing Gist
-      await octokit.gists.update({
-        gist_id: existingGistId,
-        description: "faBludar Mesh Autosave Data",
-        files: files
-      });
-      console.log("Autosaved to existing Gist:", existingGistId);
-    } else {
-      // Create a new Gist
-      const response = await octokit.gists.create({
-        description: "faBludar Mesh Autosave Data",
-        public: false,
-        files: files
-      });
-      localStorage.setItem('fabludar_master_gist_id', response.data.id);
-      console.log("Created new Master Gist:", response.data.id);
-    }
-    
-    if (statusEl) {
-      statusEl.innerText = "All changes saved";
-      setTimeout(() => { statusEl.innerText = ""; }, 3000);
-    }
-  } catch (error) {
-    console.error("Autosave Failed:", error);
-    if (statusEl) statusEl.innerText = "Sync failed (Check token)";
-  } finally {
-    isSyncing = false;
-  }
-}
-
-// ==========================================
-// 3. UI HANDLERS (FAB & Nav)
-// ==========================================
+// UI Routing
 window.switchPage = function(pageName) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(`page-${pageName}`).classList.add('active');
@@ -121,4 +100,28 @@ window.wipeData = function() {
   }
 };
 
+// Feed Post
+window.createPost = function() {
+  const content = prompt("What do you want to broadcast to the bus?");
+  if (!content) return;
+  const mesh = window.AppMesh ? window.AppMesh() : null;
+  if (mesh) {
+    import('./lib/protocol.js').then(({ createEnvelope }) => {
+      const env = createEnvelope('chat', mesh.roomId, window.AppIdentity.pubKey, window.AppIdentity.privKey, { text: content });
+      if (env) {
+        mesh.sendRaw(env);
+        document.getElementById('feed-container').innerHTML = `<div class="bg-brand-50 p-4 rounded-xl border border-brand-100"><h3 class="text-sm font-bold text-brand-800">You</h3><p class="text-xs text-brand-600">${content}</p></div>` + document.getElementById('feed-container').innerHTML;
+      }
+    });
+  }
+};
+
 initOctokit();
+
+// Restore UI state on load
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('fabludar_autosave_enabled') === 'true') {
+    const toggle = document.getElementById('autosave-toggle');
+    if (toggle) toggle.checked = true;
+  }
+});
