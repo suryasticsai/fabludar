@@ -6,7 +6,6 @@
   <title>faBludar</title>
   <link rel="icon" href="fabludar-logo.png" type="image/png">
 
-  <!-- STRICT CACHE CONTROL -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -15,7 +14,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Leaflet Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -37,7 +35,6 @@
     .page.active { display: flex; opacity: 1; flex-direction: column; height: 100%; }
     .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
     
-    /* Uber-style Light Map */
     .leaflet-layer { filter: grayscale(100%) invert(100%) contrast(90%) brightness(95%) hue-rotate(180deg); }
     .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid #f1f5f9; }
     .leaflet-popup-tip { box-shadow: none; }
@@ -45,7 +42,6 @@
     .custom-div-icon { background: none; border: none; }
     .leaflet-control-attribution { display: none; }
 
-    /* Spin Animation for Refresh */
     @keyframes spin-once { 100% { transform: rotate(360deg); } }
     .spin-anim { animation: spin-once 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
   </style>
@@ -86,8 +82,6 @@
       <!-- ================= PAGE 1: MAP ================= -->
       <section id="page-radar" class="page active overflow-hidden p-0 pb-[80px]">
         <div class="relative w-full h-full">
-          
-          <!-- Search Bar -->
           <div class="absolute top-4 left-4 right-4 z-[400] flex flex-col gap-2">
             <div class="flex items-center bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-4 py-3">
               <i class="fa-solid fa-magnifying-glass text-slate-400 mr-3"></i>
@@ -96,7 +90,6 @@
             </div>
           </div>
 
-          <!-- Map Controls -->
           <div class="absolute bottom-24 right-4 z-[400] flex flex-col gap-2">
             <button onclick="forceRefresh(this)" class="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-brand-600 active:scale-90 transition group">
               <i class="fa-solid fa-rotate-right text-lg group-active:spin-anim"></i>
@@ -134,15 +127,19 @@
         </div>
       </section>
 
-      <!-- ================= PAGE 3: FEED ================= -->
-      <section id="page-feed" class="page overflow-y-auto no-scrollbar p-5 pb-[100px] bg-slate-50">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-extrabold text-slate-800">Mesh Feed</h2>
-          <button onclick="createPost()" class="bg-brand-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-md"><i class="fa-solid fa-pen mr-1"></i> Post</button>
+      <!-- ================= PAGE 3: PUBLIC FEED / BROADCAST ================= -->
+      <section id="page-feed" class="page overflow-hidden p-0 pb-[80px] flex-col bg-slate-50">
+        <div class="p-5 flex-1 overflow-y-auto no-scrollbar space-y-3" id="feed-container">
+          <h2 class="text-xl font-extrabold text-slate-800 mb-4">Mesh Broadcast</h2>
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+            <p class="text-xs text-slate-500">Messages broadcasted here are visible to everyone in your room.</p>
+          </div>
         </div>
-        <div id="feed-container" class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
-          <h3 class="text-sm font-bold text-slate-800">Welcome to faBludar</h3>
-          <p class="text-xs text-slate-600">Messages broadcasted here are visible to everyone on your bus route.</p>
+
+        <!-- Public Chat Input -->
+        <div class="p-3 border-t border-slate-200 bg-white flex gap-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <input type="text" id="public-chat-input" placeholder="Broadcast to bus..." class="flex-1 bg-slate-100 text-sm rounded-full px-4 py-2.5 outline-none">
+          <button id="public-send-btn" class="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-md active:scale-90"><i class="fa-solid fa-paper-plane text-xs"></i></button>
         </div>
       </section>
 
@@ -193,7 +190,7 @@
       <button onclick="switchPage('chats')" id="nav-chats" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400"><i class="fa-solid fa-comments text-lg"></i><span class="text-[9px] font-bold">Chats</span></button>
       
       <div class="relative -top-6 w-16 flex justify-center">
-        <button onclick="switchPage('feed')" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,99,235,0.4)] border-4 border-slate-50 transform active:scale-90"><i class="fa-solid fa-layer-group text-xl"></i></button>
+        <button onclick="switchPage('feed')" class="w-14 h-14 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,99,235,0.4)] border-4 border-slate-50 transform active:scale-90"><i class="fa-solid fa-bullhorn text-xl"></i></button>
       </div>
 
       <button onclick="switchPage('feed')" id="nav-feed" class="nav-btn w-16 flex flex-col items-center gap-1 text-slate-400"><i class="fa-solid fa-newspaper text-lg"></i><span class="text-[9px] font-bold">Feed</span></button>
@@ -230,20 +227,15 @@
 
   </div>
 
-  <!-- CACHE BUSTING SCRIPT -->
   <script>
-    // Force unregister old service workers that might be caching broken files
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-          registration.unregister();
-        }
+        for(let registration of registrations) registration.unregister();
       });
     }
   </script>
 
-  <!-- LOAD WITH VERSION PARAMETER -->
-  <script type="module" src="./bluapp.js?v=2.0"></script>
-  <script type="module" src="./creator.js?v=2.0"></script>
+  <script type="module" src="./bluapp.js?v=3.0"></script>
+  <script type="module" src="./creator.js?v=3.0"></script>
 </body>
 </html>
