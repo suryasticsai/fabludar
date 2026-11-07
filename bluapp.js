@@ -15,7 +15,6 @@ const myVotes = {};
 const peerMarkers = {}; 
 const activePeers = {}; 
 
-// Setup Global Backup Data for Autosave
 window.AppBackupData = { messages: [], notes: [], room: "Unknown", identity: identity };
 window.AppIdentity = identity;
 
@@ -28,7 +27,7 @@ function getGeohash(lat, lng) {
   let geohash = '';
   let latMin = -90, latMax = 90, lonMin = -180, lonMax = 180;
   
-  while (geohash.length < 5) { // Precision 5 = ~4.9km
+  while (geohash.length < 5) {
     if (evenBit) {
       const lonMid = (lonMin + lonMax) / 2;
       if (lng > lonMid) { idx = idx * 2 + 1; lonMin = lonMid; } 
@@ -63,41 +62,45 @@ window.requestGPS = function() {
         initMap();
         startMesh(geohash);
       },
-      (err) => {
-        alert("GPS Error: " + err.message + "\n\nPlease ensure location services are enabled and you are using HTTPS.");
-      },
+      (err) => alert("GPS Error: " + err.message),
       { enableHighAccuracy: true }
     );
-  } else {
-    alert("Geolocation is not supported by this browser.");
   }
 };
 
 function startMesh(roomId) {
   mesh = initMesh(roomId, 
     (env) => {
-      // Save to autosave buffer
       if (window.AppBackupData) {
         window.AppBackupData.messages.push(env);
         if (window.triggerAutosave) window.triggerAutosave();
       }
 
-      if (env.type === 'chat' && currentChatTarget === env.from.substring(0,5)) {
-        renderMessage(document.getElementById('private-chat-messages'), env.payload.text, env.from.substring(0,5), false);
+      // Handle Private Messages
+      if (env.type === 'private_chat') {
+        if (currentChatTarget === env.from.substring(0,5)) {
+          renderMessage(document.getElementById('private-chat-messages'), env.payload.text, env.from.substring(0,5), false);
+        }
       }
+      
+      // Handle Public Broadcasts
+      if (env.type === 'public_chat') {
+        renderPublicMessage(env.payload.text, env.from.substring(0,5), false);
+      }
+
+      // Handle Map Notes
       if (env.type === 'map_note') addNoteToMap(env.payload, env.id);
+      
       if (env.type === 'note_vote') {
         const { noteId, vote } = env.payload;
         if (mapNotes[noteId]) { mapNotes[noteId].votes[env.from] = vote; updateNotePopup(noteId); }
       }
     },
     (pid) => { 
-      console.log(`Peer joined: ${pid}`); 
       activePeers[pid] = { id: pid, name: pid.substring(0,5) };
       updatePeerList();
     },
     (pid) => { 
-      console.log(`Peer left: ${pid}`); 
       delete activePeers[pid];
       if(peerMarkers[pid]) { map.removeLayer(peerMarkers[pid]); delete peerMarkers[pid]; }
       updatePeerList();
@@ -107,12 +110,11 @@ function startMesh(roomId) {
 }
 
 // ==========================================
-// 3. MAP & UBER UI LOGIC
+// 3. MAP LOGIC
 // ==========================================
 function initMap() {
   map = L.map('map', { zoomControl: false }).setView([myLat, myLng], 16);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
   addSelfMarker();
 
   map.on('click', (e) => {
@@ -161,6 +163,33 @@ window.handlePeerLocation = function(data) {
   }
 };
 
+window.recenterMap = function() {
+  if (!map) return;
+  map.closePopup();
+  navigator.geolocation.getCurrentPosition((pos) => {
+    myLat = pos.coords.latitude;
+    myLng = pos.coords.longitude;
+    map.flyTo([myLat, myLng], 16, { animate: true, duration: 1.5 });
+  }, (err) => {
+    if (myLat && myLng) map.flyTo([myLat, myLng], 16);
+    else alert("Could not get GPS location.");
+  });
+};
+
+window.forceRefresh = function(btn) {
+  if (btn) {
+    const icon = btn.querySelector('i');
+    if (icon) {
+      icon.classList.add('spin-anim');
+      setTimeout(() => icon.classList.remove('spin-anim'), 800);
+    }
+  }
+  if (map) map.invalidateSize();
+  updatePeerList();
+  recenterMap();
+  console.log("Force refreshed UI & GPS");
+};
+
 window.togglePinMode = function(forceState) {
   pinModeActive = forceState !== undefined ? forceState : !pinModeActive;
   const btn = document.getElementById('pin-note-btn');
@@ -177,6 +206,17 @@ window.togglePinMode = function(forceState) {
   }
 };
 
+window.searchLocation = async () => {
+  const query = document.getElementById('map-search-input').value.trim();
+  if (!query) return;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data.length > 0) { map.flyTo([data[0].lat, data[0].lon], 16); L.popup().setLatLng([data[0].lat, data[0].lon]).setContent(data[0].display_name).openOn(map); }
+    else alert("Location not found");
+  } catch (e) { console.error(e); }
+};
+
 // ==========================================
 // 4. NOTES & VOTING
 // ==========================================
@@ -186,7 +226,6 @@ function openNoteModal(latLng) {
   document.getElementById('note-modal').classList.remove('hidden');
   document.getElementById('note-modal').classList.add('flex');
 }
-
 window.closeNoteModal = () => { document.getElementById('note-modal').classList.add('hidden'); document.getElementById('note-modal').classList.remove('flex'); };
 
 window.submitNote = () => {
@@ -198,12 +237,10 @@ window.submitNote = () => {
 
 function addNoteToMap(note, noteId) {
   if (mapNotes[noteId]) return;
-  
   if (window.AppBackupData) {
     window.AppBackupData.notes.push({ noteId, ...note });
     if (window.triggerAutosave) window.triggerAutosave();
   }
-
   const noteIcon = L.divIcon({
     className: 'custom-div-icon',
     html: `<div class="w-8 h-8 bg-amber-400 border-2 border-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-message text-white text-xs"></i></div>`,
@@ -236,7 +273,7 @@ window.voteNote = (noteId, voteValue) => {
 };
 
 // ==========================================
-// 5. CHATS & PEER LIST
+// 5. CHATS (PUBLIC & PRIVATE)
 // ==========================================
 function updatePeerList() {
   const list = document.getElementById('peer-list');
@@ -244,7 +281,7 @@ function updatePeerList() {
   document.getElementById('peer-count').innerText = `${count + 1} Peers`; 
   
   if (count === 0) {
-    list.innerHTML = `<div class="text-center text-sm text-slate-400 py-10">No peers nearby. Make sure they have the app open.</div>`;
+    list.innerHTML = `<div class="text-center text-sm text-slate-400 py-10">No peers nearby.</div>`;
     return;
   }
 
@@ -267,13 +304,41 @@ function updatePeerCount() {
   document.getElementById('peer-count').innerText = `${count + 1} Peers`;
 }
 
+// Public Chat Send
+document.getElementById('public-send-btn').onclick = () => {
+  const input = document.getElementById('public-chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const env = createEnvelope('public_chat', mesh.roomId, identity.pubKey, identity.privKey, { text });
+  if (env) {
+    renderPublicMessage(text, 'Me', true);
+    mesh.sendRaw(env);
+    input.value = '';
+  }
+};
+
+function renderPublicMessage(text, sender, isSelf) {
+  const box = document.getElementById('feed-container');
+  const div = document.createElement('div');
+  div.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-1";
+  div.innerHTML = `
+    <div class="flex justify-between items-center mb-1">
+      <span class="text-[10px] font-bold ${isSelf ? 'text-brand-600' : 'text-slate-600'}">${isSelf ? 'You' : 'Commuter ' + sender}</span>
+      <span class="text-[9px] text-slate-400">${new Date().toLocaleTimeString()}</span>
+    </div>
+    <p class="text-xs text-slate-800">${text}</p>
+  `;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+// Private Chat Send
 window.openPrivateChat = (peerId, displayName) => {
   if(map) map.closePopup();
   currentChatTarget = peerId;
   document.getElementById('private-chat-title').innerText = `Chat with ${displayName}`;
   document.getElementById('private-chat-modal').classList.remove('hidden');
   document.getElementById('private-chat-modal').classList.add('flex');
-  switchPage('chats'); 
 };
 
 window.closePrivateChat = () => { 
@@ -286,8 +351,12 @@ document.getElementById('private-send-btn').onclick = () => {
   const input = document.getElementById('private-chat-input');
   const text = input.value.trim();
   if (!text || !currentChatTarget) return;
-  const env = createEnvelope('chat', mesh.roomId, identity.pubKey, identity.privKey, { text });
-  if(env) { renderMessage(document.getElementById('private-chat-messages'), text, 'Me', true); mesh.sendToPeer(currentChatTarget, env); input.value = ''; }
+  const env = createEnvelope('private_chat', mesh.roomId, identity.pubKey, identity.privKey, { text });
+  if(env) { 
+    renderMessage(document.getElementById('private-chat-messages'), text, 'Me', true); 
+    mesh.sendToPeer(currentChatTarget, env); 
+    input.value = ''; 
+  }
 };
 
 function renderMessage(box, text, sender, isSelf) {
@@ -296,47 +365,6 @@ function renderMessage(box, text, sender, isSelf) {
   div.innerHTML = `<div class="${isSelf ? 'bg-brand-600 text-white rounded-br-none' : 'bg-slate-200 text-slate-800 rounded-bl-none'} p-2.5 rounded-2xl text-xs max-w-[80%] shadow-sm">${text}</div>`;
   box.appendChild(div); box.scrollTop = box.scrollHeight;
 }
-
-window.forceRefresh = function() {
-  console.log("Force refreshing connection and GPS...");
-  
-  // 1. Force a GPS Update
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      myLat = pos.coords.latitude;
-      myLng = pos.coords.longitude;
-      
-      // Update self marker
-      if (window.selfMarker) {
-        window.selfMarker.setLatLng([myLat, myLng]);
-      }
-      
-      // If on the map, recenter to the new location
-      if (map) {
-        map.flyTo([myLat, myLng], 16, { animate: true, duration: 1 });
-        map.invalidateSize(); // Fixes any rendering glitches if the map was hidden
-      }
-    }, (err) => {
-      console.warn("Refresh GPS failed:", err);
-      alert("Could not get GPS. Please check your location settings.");
-    }, { enableHighAccuracy: true });
-  }
-
-  // 2. Re-render the Peer List (in case UI missed an update)
-  if (typeof updatePeerList === 'function') {
-    updatePeerList();
-  }
-
-  // 3. Show a quick visual confirmation (optional)
-  const btn = event.currentTarget;
-  if (btn) {
-    const icon = btn.querySelector('i');
-    if (icon) {
-      icon.classList.add('animate-spin');
-      setTimeout(() => icon.classList.remove('animate-spin'), 1000);
-    }
-  }
-};
 
 // Debug Console
 const originalLog = console.log;
